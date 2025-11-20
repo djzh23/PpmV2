@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using PpmV2.Domain.Users;
 using PpmV2.Infrastructure.Identity;
 
-namespace PpmV2.Infrastructure.Presistence;
+namespace PpmV2.Infrastructure.Persistence;
 
 public class AppDbContext : IdentityDbContext<AppUser, AppRole, Guid>
 {
