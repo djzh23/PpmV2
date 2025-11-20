@@ -13,6 +13,8 @@ public class UserProfile
 
     /// <summary>
     /// Refers to the technical identity user (ASP.NET Identity).
+    /// Infrastructure "translates" AppUser : IdentityUser<Guid> TO UserProfile
+    /// 1:1 Relation via IdentityUserId
     /// </summary>
     public Guid IdentityUserId { get; set; }
 
