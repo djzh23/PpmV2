@@ -1,8 +1,12 @@
 
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using PpmV2.Application.Auth;
+using PpmV2.Domain.Users.Abstractions;
+using PpmV2.Infrastructure.Auth;
 using PpmV2.Infrastructure.Identity;
 using PpmV2.Infrastructure.Persistence;
+using PpmV2.Infrastructure.Persistence.Users;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,6 +16,7 @@ builder.Services.AddOpenApi();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
+
 
 // Add DbContext 
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -28,6 +33,15 @@ builder.Services
     })
     .AddEntityFrameworkStores<AppDbContext>()
     .AddDefaultTokenProviders();
+
+
+
+// AuthService
+builder.Services.AddScoped<IAuthService, AuthService>();
+// UserProfile Repository
+builder.Services.AddScoped<IUserProfileRepository, UserProfileRepository>();
+
+
 
 var app = builder.Build();
 
