@@ -75,8 +75,10 @@ public class AuthService : IAuthService
         {
             IdentityUserId = appUser.Id,
             Email = request.Email,
-            Firstname = string.Empty,
-            Lastname = string.Empty,
+            //Firstname = string.Empty,
+            //Lastname = string.Empty,
+            Firstname = request.Firstname,
+            Lastname = request.Lastname,
             Role = Enum.Parse<UserRole>(request.Role, ignoreCase: true),
             IsActive = true,
             IsApproved = false, // later set to true after admin approval
@@ -90,5 +92,7 @@ public class AuthService : IAuthService
             UserId = appUser.Id,
             Email = appUser.Email!
         };
+
+
     }
 }
