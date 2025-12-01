@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using PpmV2.Application.Auth;
+using PpmV2.Domain.Users;
 using PpmV2.Domain.Users.Abstractions;
 using PpmV2.Infrastructure.Auth;
 using PpmV2.Infrastructure.Identity;
@@ -51,6 +52,11 @@ builder.Services
     .AddEntityFrameworkStores<AppDbContext>()
     .AddDefaultTokenProviders();
 
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminOnly", policy =>
+        policy.RequireRole(UserRole.Admin.ToString()));
+});
 
 
 // AuthService
