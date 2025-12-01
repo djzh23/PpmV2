@@ -41,7 +41,7 @@ Trennung der Verantwortlichkeiten sicherzustellen:
 
 ---
 
-** 🎯 Nächste Schritte:**
+## 🎯 Nächste Schritte:
 
 - Implementierung von **JWT** für zustandslose Authentifizierung  
 - Ausbau von **rollenbasierten Zugriffskontrollen (RBAC)**  
