@@ -88,27 +88,6 @@ builder.Services.AddAuthentication(options =>
 });
 
 
-//builder.Services
-//    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-//    .AddJwtBearer(options =>
-//    {
-//        options.TokenValidationParameters = new TokenValidationParameters
-//        {
-//            ValidateIssuer = true,
-//            ValidateAudience = true,
-//            ValidateLifetime = true,
-//            ValidateIssuerSigningKey = true,
-
-//            ValidIssuer = jwtSection["Issuer"],
-//            ValidAudience = jwtSection["Audience"],
-//            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
-
-//            ClockSkew = TimeSpan.FromMinutes(1)
-//        };
-//    });
-
-
-
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("AdminOnly", policy =>
