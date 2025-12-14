@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Moq;
+using PpmV2.Application.Admin.Interfaces;
 using PpmV2.Application.Auth.DTOs;
 using PpmV2.Domain.Users;
 using PpmV2.Domain.Users.Abstractions;
@@ -14,13 +15,16 @@ public class AuthServiceTests
     private readonly Mock<UserManager<AppUser>> _userManagerMock;
     private readonly Mock<IUserProfileRepository> _userProfileRepoMock;
     private readonly AuthService _authService;
+    private readonly Mock<IJwtTokenService> _jwtTokenServiceMock;
 
     // Constructor for common setup (runs before each test)
     public AuthServiceTests()
     {
         _userManagerMock = CreateMockUserManager();
         _userProfileRepoMock = new Mock<IUserProfileRepository>();
-        _authService = new AuthService(_userManagerMock.Object, _userProfileRepoMock.Object);
+        _jwtTokenServiceMock = new Mock<IJwtTokenService>();
+
+        _authService = new AuthService(_userManagerMock.Object, _userProfileRepoMock.Object, _jwtTokenServiceMock.Object);
     }
 
     // Helper method for creating the UserManager mock (encapsulates the complexity)

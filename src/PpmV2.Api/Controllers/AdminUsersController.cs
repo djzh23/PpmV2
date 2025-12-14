@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using PpmV2.Application.Admin.Interfaces;
 using PpmV2.Domain.Users;
 using PpmV2.Infrastructure.Identity;
 
@@ -11,33 +12,51 @@ namespace PpmV2.Api.Controllers;
 [Authorize(Policy = "AdminOnly")]
 public class AdminUsersController : ControllerBase
 {
-    private readonly UserManager<AppUser> _userManager;
 
-    public AdminUsersController(UserManager<AppUser> userManager)
+    private readonly IAdminUserService _adminUserService;
+
+    public AdminUsersController(IAdminUserService adminUserService)
     {
-        _userManager = userManager;
+        _adminUserService = adminUserService;
     }
+
 
     [HttpGet("pending")]
     public async Task<IActionResult> GetPendingUsers()
     {
-        var pending = _userManager.Users
-            .Where(u => u.Status == UserStatus.Pending)
-            .Select(u => new { u.Id, u.Email })
-            .ToList();
-
-        return Ok(pending);
+        var pendingUsers = await _adminUserService.GetPendingUsersAsync();
+        return Ok(pendingUsers);
     }
 
     [HttpPut("approve/{id:guid}")]
     public async Task<IActionResult> Approve(Guid id)
     {
-        var user = await _userManager.FindByIdAsync(id.ToString());
-        if (user == null) return NotFound();
+        var result = await _adminUserService.ApproveUserAsync(id);
 
-        user.Status = UserStatus.Approved;
-        await _userManager.UpdateAsync(user);
+        if (!result.Success)
+        {
+            // string.Equals(result.ErrorMessage, "User not found.", StringComparison.OrdinalIgnoreCase)
+            if (result.ErrorMessage == "User not found")
+                return NotFound(new { message = result.ErrorMessage });
+            
+            return BadRequest(new { message = result.ErrorMessage });
+        }
+        return Ok(new { message = "User approved successfully." });
+    }
 
-        return Ok(new { message = "Approved" });
+    [HttpPut("reject/{id:guid}")]
+    public async Task<IActionResult> Reject(Guid id)
+    {
+        var result = await _adminUserService.RejectUserAsync(id);
+
+        if(!result.Success)
+        {
+            if (result.ErrorMessage == "User not found")
+                return NotFound(new { message = result.ErrorMessage });
+            
+            return BadRequest(new { message = result.ErrorMessage });
+        }
+
+        return Ok(new { message = "User rejected successfully." });
     }
 }
