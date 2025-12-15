@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using PpmV2.Application.Admin.Interfaces;
 using PpmV2.Application.Auth;
 using PpmV2.Application.Auth.DTOs;
 using PpmV2.Domain.Users;
@@ -19,10 +20,13 @@ public class AuthService : IAuthService
     //private readonly AppDbContext _db;
     private readonly IUserProfileRepository _userProfileRepository;
 
-    public AuthService(UserManager<AppUser> userManager, IUserProfileRepository userProfileRepository)
+    private readonly IJwtTokenService _jwtTokenService;
+
+    public AuthService(UserManager<AppUser> userManager, IUserProfileRepository userProfileRepository, IJwtTokenService jwtTokenService)
     {
         _userManager = userManager;
         _userProfileRepository = userProfileRepository;
+        _jwtTokenService = jwtTokenService;
     }
 
     public async Task<AuthResult> LoginAsync(LoginRequest request)
@@ -44,10 +48,19 @@ public class AuthService : IAuthService
         // TODO: generating JWT 
         // var token = _jwtTokenGenerator.GenerateToken(user);
 
+        var claims = new JwtUserClaims(
+                UserId: user.Id,
+                Email: user.Email!,
+                Role: user.Role,
+                Status: user.Status
+            );
+
+        var token = _jwtTokenService.GenerateToken(claims);
+
         return AuthResult.Ok(
             userId: user.Id,
             email: user.Email!,
-            token: null // oder token, wenn du ihn schon generierst
+            token: token // oder token, wenn du ihn schon generierst
         );
     }
     public async Task<AuthResult> RegisterAsync(RegisterRequest request)
