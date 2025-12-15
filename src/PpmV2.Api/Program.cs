@@ -126,10 +126,11 @@ using (var scope = app.Services.CreateScope())
     var services = scope.ServiceProvider;
 
     var userManager = services.GetRequiredService<UserManager<AppUser>>();
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     var configuration = services.GetRequiredService<IConfiguration>();
     var logger = services.GetRequiredService<ILoggerFactory>().CreateLogger("AdminSeeder");
 
-    await AdminSeeder.SeedAsync(userManager, configuration, logger);
+    await AdminSeeder.SeedAsync(userManager, dbContext, configuration, logger);
 }
 
 
