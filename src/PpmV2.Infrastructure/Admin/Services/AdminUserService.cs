@@ -88,4 +88,33 @@ public class AdminUserService : IAdminUserService
             ))
             .ToListAsync();
     }
+
+
+    public async Task<ServiceResult> SetUserRoleAsync(Guid userId, UserRole role)
+    {
+        var user = await _userManager.Users.FirstOrDefaultAsync(u => u.Id == userId);
+        if (user == null)
+            return ServiceResult.Fail("User not found");
+
+        if (user.Status != UserStatus.Approved)
+            return ServiceResult.Fail("Role can only be changed for approved users");
+
+        if (role == UserRole.Admin)
+            return ServiceResult.Fail("Admin role cannot be assigned via API");
+
+        if (!Enum.IsDefined(typeof(UserRole), role) || role == UserRole.Unknown)
+            return ServiceResult.Fail("Invalid role");
+
+        user.Role = role;
+
+        var result = await _userManager.UpdateAsync(user);
+        if (!result.Succeeded)
+        {
+            var errors = string.Join("; ", result.Errors.Select(e => e.Description));
+            return ServiceResult.Fail(errors);
+        }
+
+        return ServiceResult.Ok();
+    }
+
 }
