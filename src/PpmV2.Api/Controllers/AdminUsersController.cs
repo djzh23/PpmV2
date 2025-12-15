@@ -28,6 +28,20 @@ public class AdminUsersController : ControllerBase
         return Ok(pendingUsers);
     }
 
+    [HttpGet("approved")]
+    public async Task<IActionResult> GetApprovedUsers()
+    {
+        var approvedUsers = await _adminUserService.GetApprovedUsersAsync();
+        return Ok(approvedUsers);
+    }
+
+    [HttpGet("rejected")]
+    public async Task<IActionResult> GetRejectedUsers()
+    {
+        var rejectedUsers = await _adminUserService.GetRejectedUsersAsync();
+        return Ok(rejectedUsers);
+    }
+
     [HttpPut("approve/{id:guid}")]
     public async Task<IActionResult> Approve(Guid id)
     {
