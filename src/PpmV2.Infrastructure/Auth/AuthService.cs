@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using PpmV2.Application.Admin.Interfaces;
 using PpmV2.Application.Auth;
 using PpmV2.Application.Auth.DTOs;
 using PpmV2.Domain.Users;
@@ -19,38 +20,55 @@ public class AuthService : IAuthService
     //private readonly AppDbContext _db;
     private readonly IUserProfileRepository _userProfileRepository;
 
-    public AuthService(UserManager<AppUser> userManager, IUserProfileRepository userProfileRepository)
+    private readonly IJwtTokenService _jwtTokenService;
+
+    public AuthService(UserManager<AppUser> userManager, IUserProfileRepository userProfileRepository, IJwtTokenService jwtTokenService)
     {
         _userManager = userManager;
         _userProfileRepository = userProfileRepository;
+        _jwtTokenService = jwtTokenService;
     }
 
-    public async Task<AuthResponse> LoginAsync(LoginRequest request)
+    public async Task<AuthResult> LoginAsync(LoginRequest request)
     {
         var user = await _userManager.FindByEmailAsync(request.Email);
 
         if (user == null)
-            throw new InvalidOperationException("Invalid email or password.");
+            return AuthResult.Fail("Invalid email or password.");
 
         var validPassword = await _userManager.CheckPasswordAsync(user, request.Password);
 
         if (!validPassword)
-            throw new InvalidOperationException("Invalid email or password.");
+            return AuthResult.Fail("Invalid email or password.");
 
-        return new AuthResponse
-        {
-            UserId = user.Id,
-            Email = user.Email!
-        };
+        if (user.Status != UserStatus.Approved)
+            return AuthResult.Fail("Your account has not been approved by an administrator yet.");
+
+
+        // TODO: generating JWT 
+        // var token = _jwtTokenGenerator.GenerateToken(user);
+
+        var claims = new JwtUserClaims(
+                UserId: user.Id,
+                Email: user.Email!,
+                Role: user.Role,
+                Status: user.Status
+            );
+
+        var token = _jwtTokenService.GenerateToken(claims);
+
+        return AuthResult.Ok(
+            userId: user.Id,
+            email: user.Email!,
+            token: token // oder token, wenn du ihn schon generierst
+        );
     }
-    public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
+    public async Task<AuthResult> RegisterAsync(RegisterRequest request)
     {
         // check if Email exists
         var existingUser = await _userManager.FindByEmailAsync(request.Email);
         if (existingUser != null)
-        {
-            throw new InvalidOperationException("A user with this email already exists.");
-        }
+            return AuthResult.Fail("A user with this email already exists.");
 
         // Identity-user 
         var appUser = new AppUser
@@ -58,7 +76,9 @@ public class AuthService : IAuthService
             UserName = request.Email,
             Email = request.Email,
             IsActive = true,
-            IsApproved = true, // later set to true after admin approval
+            //IsApproved = true, // later set to true after admin approval
+            Status = UserStatus.Pending,
+            Role = UserRole.Honorarkraft,
             IsProfileCompleted = false
         };
 
@@ -67,7 +87,7 @@ public class AuthService : IAuthService
         if (!identityResult.Succeeded)
         {
             var errors = string.Join("; ", identityResult.Errors.Select(e => e.Description));
-            throw new InvalidOperationException($"User creation failed: {errors}");
+            return AuthResult.Fail($"User creation failed: {errors}");
         }
 
         // Domain-Profile creation
@@ -75,20 +95,21 @@ public class AuthService : IAuthService
         {
             IdentityUserId = appUser.Id,
             Email = request.Email,
-            Firstname = string.Empty,
-            Lastname = string.Empty,
-            Role = Enum.Parse<UserRole>(request.Role, ignoreCase: true),
+            Firstname = request.Firstname,
+            Lastname = request.Lastname,
+            //Role = Enum.Parse<UserRole>(request.Role, ignoreCase: true),
             IsActive = true,
-            IsApproved = false, // later set to true after admin approval
         };
 
         await _userProfileRepository.AddAsync(profile);
         await _userProfileRepository.SaveChangesAsync();
 
-        return new AuthResponse
-        {
-            UserId = appUser.Id,
-            Email = appUser.Email!
-        };
+        return AuthResult.Ok(
+            userId: appUser.Id,
+            email: appUser.Email!,
+            token: null
+        );
+
+
     }
 }

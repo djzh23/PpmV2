@@ -7,6 +7,8 @@ namespace PpmV2.Application.Auth;
 
 public interface IAuthService
 {
-    Task<AuthResponse> RegisterAsync(RegisterRequest request);
-    Task<AuthResponse> LoginAsync(LoginRequest request);
+    //Task<AuthResponse> RegisterAsync(RegisterRequest request);
+    Task<AuthResult> RegisterAsync(RegisterRequest request);
+    //Task<AuthResponse> LoginAsync(LoginRequest request);
+    Task<AuthResult> LoginAsync(LoginRequest request);
 }

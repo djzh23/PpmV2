@@ -23,9 +23,9 @@ public class UserProfile
 
     public string Email { get; set; } = default!; // convenient for UI, even if Identity has it too
 
-    public UserRole Role { get; set; }
+    //public UserRole Role { get; set; }
 
-    public bool IsApproved { get; set; }
+    //public bool IsApproved { get; set; }
     public bool IsActive { get; set; } = true;
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
