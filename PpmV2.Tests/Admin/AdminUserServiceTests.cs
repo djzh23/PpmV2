@@ -149,4 +149,89 @@ public class AdminUserServiceTests
         Assert.False(result.Success);
         Assert.Contains("not found", result.ErrorMessage!, StringComparison.OrdinalIgnoreCase);
     }
+
+    [Fact]
+    public async Task GetApprovedUsersAsync_ReturnsOnlyApprovedUsers()
+    {
+        var (db, userManager, service) = CreateSut();
+
+        await SeedUserAsync(userManager, db, "p1@test.com", UserStatus.Pending);
+        await SeedUserAsync(userManager, db, "a1@test.com", UserStatus.Approved);
+        await SeedUserAsync(userManager, db, "r1@test.com", UserStatus.Rejected);
+        await SeedUserAsync(userManager, db, "a2@test.com", UserStatus.Approved);
+
+        var approved = await service.GetApprovedUsersAsync();
+
+        Assert.Equal(2, approved.Count);
+        Assert.All(approved, u => Assert.Equal(UserStatus.Approved, u.Status));
+        Assert.Contains(approved, u => u.Email == "a1@test.com");
+        Assert.Contains(approved, u => u.Email == "a2@test.com");
+    }
+
+    [Fact]
+    public async Task SetUserRoleAsync_UpdatesRole_WhenApproved()
+    {
+        var (db, userManager, service) = CreateSut();
+
+        var user = await SeedUserAsync(userManager, db, "approved-role@test.com", UserStatus.Approved, UserRole.Honorarkraft);
+
+        var result = await service.SetUserRoleAsync(user.Id, UserRole.Coordinator);
+
+        Assert.True(result.Success);
+
+        var updated = await userManager.FindByIdAsync(user.Id.ToString());
+        Assert.NotNull(updated);
+        Assert.Equal(UserRole.Coordinator, updated!.Role);
+    }
+
+
+    [Fact]
+    public async Task SetUserRoleAsync_ReturnsFail_WhenUserNotApproved()
+    {
+        var (db, userManager, service) = CreateSut();
+
+        var user = await SeedUserAsync(userManager, db, "pending-role@test.com", UserStatus.Pending, UserRole.Honorarkraft);
+
+        var result = await service.SetUserRoleAsync(user.Id, UserRole.Coordinator);
+
+        Assert.False(result.Success);
+        Assert.Contains("approved", result.ErrorMessage!, StringComparison.OrdinalIgnoreCase);
+
+        var updated = await userManager.FindByIdAsync(user.Id.ToString());
+        Assert.NotNull(updated);
+        Assert.Equal(UserRole.Honorarkraft, updated!.Role);
+    }
+
+
+    [Fact]
+    public async Task SetUserRoleAsync_ReturnsFail_WhenRoleIsAdmin()
+    {
+        var (db, userManager, service) = CreateSut();
+
+        var user = await SeedUserAsync(userManager, db, "approved-adminrole@test.com", UserStatus.Approved, UserRole.Honorarkraft);
+
+        var result = await service.SetUserRoleAsync(user.Id, UserRole.Admin);
+
+        Assert.False(result.Success);
+        Assert.Contains("admin", result.ErrorMessage!, StringComparison.OrdinalIgnoreCase);
+
+        var updated = await userManager.FindByIdAsync(user.Id.ToString());
+        Assert.NotNull(updated);
+        Assert.Equal(UserRole.Honorarkraft, updated!.Role);
+    }
+
+
+    [Fact]
+    public async Task SetUserRoleAsync_ReturnsFail_WhenUserNotFound()
+    {
+        var (_, _, service) = CreateSut();
+
+        var result = await service.SetUserRoleAsync(Guid.NewGuid(), UserRole.Coordinator);
+
+        Assert.False(result.Success);
+        Assert.Contains("not found", result.ErrorMessage!, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+
 }
