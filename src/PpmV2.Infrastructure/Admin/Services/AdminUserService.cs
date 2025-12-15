@@ -17,23 +17,8 @@ public class AdminUserService : IAdminUserService
         _userManager = userManager;
     }
 
-    public async Task<List<PendingUserDto>> GetPendingUsersAsync() {
+    public Task<List<UserAdminListDto>> GetPendingUsersAsync() => GetUsersByStatusAsync(UserStatus.Pending);
 
-        var pendingUsers = await _userManager.Users
-                                .Include(u => u.Profile)
-                                .Where(u => u.Status == UserStatus.Pending)
-                                .ToListAsync();
-        
-        return pendingUsers.Select(user => new PendingUserDto(
-            Id: user.Id,
-            Email: user.Email ?? string.Empty,
-            Firstname: user.Profile?.Firstname ?? string.Empty, 
-            Lastname: user.Profile?.Lastname ?? string.Empty,  
-            Status: user.Status
-            )).ToList();
-    
-    }
-    
     public async Task<ServiceResult> ApproveUserAsync(Guid userId) {
         
         var user = await _userManager.FindByIdAsync(userId.ToString());
@@ -82,5 +67,25 @@ public class AdminUserService : IAdminUserService
         }
 
         return ServiceResult.Ok();
+    }
+
+    public Task<List<UserAdminListDto>> GetApprovedUsersAsync() => GetUsersByStatusAsync(UserStatus.Approved);
+
+    public Task<List<UserAdminListDto>> GetRejectedUsersAsync() => GetUsersByStatusAsync(UserStatus.Rejected);
+
+    private async Task<List<UserAdminListDto>> GetUsersByStatusAsync(UserStatus status)
+    {
+        return await _userManager.Users
+            .Include(u => u.Profile)
+            .Where(u => u.Status == status)
+            .Select(u => new UserAdminListDto(
+                u.Id,
+                u.Email ?? string.Empty,
+                u.Profile != null ? u.Profile.Firstname : string.Empty,
+                u.Profile != null ? u.Profile.Lastname : string.Empty,
+                u.Status,
+                u.Role
+            ))
+            .ToListAsync();
     }
 }

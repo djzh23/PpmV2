@@ -8,7 +8,9 @@ namespace PpmV2.Application.Admin.Interfaces;
 
 public interface IAdminUserService
 {
-    Task<List<PendingUserDto>> GetPendingUsersAsync();
+    Task<List<UserAdminListDto>> GetPendingUsersAsync();
+    Task<List<UserAdminListDto>> GetApprovedUsersAsync();
+    Task<List<UserAdminListDto>> GetRejectedUsersAsync();
     Task<ServiceResult> ApproveUserAsync(Guid userId);
     Task<ServiceResult> RejectUserAsync(Guid userId);
 }

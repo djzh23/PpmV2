@@ -1,8 +1,10 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using PpmV2.Domain.Users;
 using PpmV2.Infrastructure.Identity;
+using PpmV2.Infrastructure.Persistence;
 
 namespace PpmV2.Infrastructure.Admin.Seeding;
 
@@ -10,6 +12,7 @@ public static class AdminSeeder
 {
     public static async Task SeedAsync(
         UserManager<AppUser> userManager,
+        AppDbContext dbContext,
         IConfiguration configuration,
         ILogger logger)
     {
@@ -31,11 +34,11 @@ public static class AdminSeeder
             return;
         }
 
-        var existing = await userManager.FindByEmailAsync(email);
+        var user = await userManager.FindByEmailAsync(email);
 
-        if (existing == null)
+        if (user == null)
         {
-            var admin = new AppUser
+            user = new AppUser
             {
                 UserName = email,
                 Email = email,
@@ -45,7 +48,7 @@ public static class AdminSeeder
                 IsProfileCompleted = true
             };
 
-            var createResult = await userManager.CreateAsync(admin, password);
+            var createResult = await userManager.CreateAsync(user, password);
             if (!createResult.Succeeded)
             {
                 var errors = string.Join("; ", createResult.Errors.Select(e => e.Description));
@@ -54,43 +57,64 @@ public static class AdminSeeder
             }
 
             logger.LogInformation("AdminSeeder: created admin user {Email}", email);
-            return;
         }
 
+        // Ensure invariants for existing or newly created user
         var changed = false;
 
-        if (existing.Role != UserRole.Admin)
+        if (user.Role != UserRole.Admin) { user.Role = UserRole.Admin; changed = true; }
+        if (user.Status != UserStatus.Approved) { user.Status = UserStatus.Approved; changed = true; }
+        if (!user.IsActive) { user.IsActive = true; changed = true; }
+        if (!user.IsProfileCompleted) { user.IsProfileCompleted = true; changed = true; }
+
+        if (changed)
         {
-            existing.Role = UserRole.Admin;
-            changed = true;
+            var updateResult = await userManager.UpdateAsync(user);
+            if (!updateResult.Succeeded)
+            {
+                var errors = string.Join("; ", updateResult.Errors.Select(e => e.Description));
+                logger.LogError("AdminSeeder: failed to update admin user. Errors: {Errors}", errors);
+                return;
+            }
         }
 
-        if (existing.Status != UserStatus.Approved)
-        {
-            existing.Status = UserStatus.Approved;
-            changed = true;
-        }
+        // Ensure profile exists and is filled
+        var profileExists = await dbContext.UserProfiles
+            .AnyAsync(p => p.IdentityUserId == user.Id);
 
-        if (!existing.IsActive)
+        if (!profileExists)
         {
-            existing.IsActive = true;
-            changed = true;
-        }
+            dbContext.UserProfiles.Add(new UserProfile
+            {
+                IdentityUserId = user.Id,
+                Firstname = "System",
+                Lastname = "Administrator",
+                Email = user.Email!,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            });
 
-        if (!changed)
+            await dbContext.SaveChangesAsync();
+            logger.LogInformation("AdminSeeder: created admin profile for {Email}", email);
+        }
+        else
         {
-            logger.LogInformation("AdminSeeder: admin user already OK {Email}", email);
-            return;
-        }
+            // Optional: enforce names (only if empty)
+            var profile = await dbContext.UserProfiles.FirstAsync(p => p.IdentityUserId == user.Id);
 
-        var updateResult = await userManager.UpdateAsync(existing);
-        if (!updateResult.Succeeded)
-        {
-            var errors = string.Join("; ", updateResult.Errors.Select(e => e.Description));
-            logger.LogError("AdminSeeder: failed to update admin user. Errors: {Errors}", errors);
-            return;
-        }
+            var pChanged = false;
+            if (string.IsNullOrWhiteSpace(profile.Firstname)) { profile.Firstname = "System"; pChanged = true; }
+            if (string.IsNullOrWhiteSpace(profile.Lastname)) { profile.Lastname = "Administrator"; pChanged = true; }
+            if (string.IsNullOrWhiteSpace(profile.Email)) { profile.Email = user.Email; pChanged = true; }
 
-        logger.LogInformation("AdminSeeder: updated admin user {Email}", email);
+            if (pChanged)
+            {
+                profile.UpdatedAt = DateTime.UtcNow;
+                await dbContext.SaveChangesAsync();
+                logger.LogInformation("AdminSeeder: updated admin profile for {Email}", email);
+            }
+        }
     }
 }
+
