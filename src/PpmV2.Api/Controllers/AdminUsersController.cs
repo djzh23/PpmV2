@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using PpmV2.Application.Admin.DTOs;
 using PpmV2.Application.Admin.Interfaces;
 using PpmV2.Domain.Users;
 using PpmV2.Infrastructure.Identity;
@@ -73,4 +74,30 @@ public class AdminUsersController : ControllerBase
 
         return Ok(new { message = "User rejected successfully." });
     }
+
+    
+    [HttpPut("{id:guid}/role")]
+    public async Task<IActionResult> SetUserRole(
+    Guid id,
+    [FromBody] SetUserRoleRequest request)
+    {
+        if (request == null || string.IsNullOrWhiteSpace(request.Role))
+            return BadRequest(new { message = "Role is required" });
+
+        if (!Enum.TryParse<UserRole>(request.Role, ignoreCase: true, out var role))
+            return BadRequest(new { message = "Invalid role value" });
+
+        var result = await _adminUserService.SetUserRoleAsync(id, role);
+
+        if (!result.Success)
+        {
+            if (result.ErrorMessage == "User not found")
+                return NotFound(new { message = result.ErrorMessage });
+
+            return BadRequest(new { message = result.ErrorMessage });
+        }
+
+        return Ok(new { message = "User role updated successfully." });
+    }
+
 }
