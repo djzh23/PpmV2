@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace PpmV2.Domain.Einsaetze;
+﻿namespace PpmV2.Domain.Einsaetze;
 
 public enum EinsatzRole
 {
