@@ -3,14 +3,9 @@ using Microsoft.EntityFrameworkCore;
 using PpmV2.Application.Admin.Interfaces;
 using PpmV2.Application.Auth;
 using PpmV2.Application.Auth.DTOs;
+using PpmV2.Application.Users.Interfaces;
 using PpmV2.Domain.Users;
-using PpmV2.Domain.Users.Abstractions;
 using PpmV2.Infrastructure.Identity;
-using PpmV2.Infrastructure.Persistence;
-using PpmV2.Infrastructure.Persistence.Users;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace PpmV2.Infrastructure.Auth;
 
