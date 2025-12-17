@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using PpmV2.Application.Auth;
 using PpmV2.Application.Auth.DTOs;
+using PpmV2.Application.Auth.Services;
 using System.Runtime.Intrinsics.X86;
 
 namespace PpmV2.Api.Controllers;

@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using PpmV2.Application.Admin.Interfaces;
-using PpmV2.Application.Auth;
+using PpmV2.Application.Auth.Services;
 using PpmV2.Application.Users.Interfaces;
 using PpmV2.Domain.Users;
 using PpmV2.Infrastructure.Admin.Seeding;
