@@ -4,7 +4,7 @@ using System.Text;
 
 namespace PpmV2.Application.Auth.DTOs;
 
-public class RegisterRequest
+public sealed class RegisterRequest
 {
     public required string Email { get; init; }
     public required string Password { get; init; }
