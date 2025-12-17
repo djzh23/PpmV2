@@ -37,9 +37,5 @@ public class AppDbContext : IdentityDbContext<AppUser, AppRole, Guid>
         builder.Entity<UserProfile>()
             .HasIndex(p => p.IdentityUserId)
             .IsUnique();
-
-
-        // Apply Assignements/Location configurations
-        //builder.ApplyConfiguration(new LocationConfiguration());
     }
 }

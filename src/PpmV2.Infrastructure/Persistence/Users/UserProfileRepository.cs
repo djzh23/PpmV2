@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using PpmV2.Application.Users.Interfaces;
 using PpmV2.Domain.Users;
-using PpmV2.Domain.Users.Abstractions;
 
 namespace PpmV2.Infrastructure.Persistence.Users;
 

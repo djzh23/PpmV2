@@ -2,8 +2,8 @@
 using Moq;
 using PpmV2.Application.Admin.Interfaces;
 using PpmV2.Application.Auth.DTOs;
+using PpmV2.Application.Users.Interfaces;
 using PpmV2.Domain.Users;
-using PpmV2.Domain.Users.Abstractions;
 using PpmV2.Infrastructure.Auth;
 using PpmV2.Infrastructure.Identity;
 

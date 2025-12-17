@@ -1,8 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using PpmV2.Domain.Users;
 
-namespace PpmV2.Domain.Users.Abstractions;
+namespace PpmV2.Application.Users.Interfaces;
+
 
 public interface IUserProfileRepository
 {
