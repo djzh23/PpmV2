@@ -4,6 +4,10 @@
     <ProjectReference Include="..\PpmV2.Domain\PpmV2.Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Users\Services\" />
+  </ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>

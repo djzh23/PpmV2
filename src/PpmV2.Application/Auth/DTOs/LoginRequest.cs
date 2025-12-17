@@ -4,8 +4,8 @@ using System.Text;
 
 namespace PpmV2.Application.Auth.DTOs;
 
-public class LoginRequest
+public sealed class LoginRequest
 {
-    public string Email { get; set; }
-    public string Password { get; set; }
+    public required string Email { get; init; }
+    public required string Password { get; init; }
 }

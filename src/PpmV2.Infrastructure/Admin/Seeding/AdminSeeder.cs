@@ -106,7 +106,18 @@ public static class AdminSeeder
             var pChanged = false;
             if (string.IsNullOrWhiteSpace(profile.Firstname)) { profile.Firstname = "System"; pChanged = true; }
             if (string.IsNullOrWhiteSpace(profile.Lastname)) { profile.Lastname = "Administrator"; pChanged = true; }
-            if (string.IsNullOrWhiteSpace(profile.Email)) { profile.Email = user.Email; pChanged = true; }
+            if (string.IsNullOrWhiteSpace(profile.Email)) {
+                if (!string.IsNullOrWhiteSpace(user.Email))
+                {
+                    profile.Email = user.Email;
+                    pChanged = true;
+                }
+                else
+                {
+                    logger.LogWarning("AdminSeeder: user.Email is null/empty for admin user {UserId}. Profile email not updated.", user.Id);
+                }
+            }
+
 
             if (pChanged)
             {
