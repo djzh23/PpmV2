@@ -4,12 +4,14 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using PpmV2.Application.Admin.Interfaces;
 using PpmV2.Application.Auth.Services;
+using PpmV2.Application.Locations.Interfaces;
 using PpmV2.Application.Users.Interfaces;
 using PpmV2.Domain.Users;
 using PpmV2.Infrastructure.Admin.Seeding;
 using PpmV2.Infrastructure.Admin.Services;
 using PpmV2.Infrastructure.Auth;
 using PpmV2.Infrastructure.Identity;
+using PpmV2.Infrastructure.Locations.Services;
 using PpmV2.Infrastructure.Persistence;
 using PpmV2.Infrastructure.Persistence.Users;
 using System.Text;
@@ -102,6 +104,8 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserProfileRepository, UserProfileRepository>();
 
 builder.Services.AddScoped<IAdminUserService, AdminUserService>();
+
+builder.Services.AddScoped<ILocationQueryService, LocationQueryService>();
 
 
 var app = builder.Build();

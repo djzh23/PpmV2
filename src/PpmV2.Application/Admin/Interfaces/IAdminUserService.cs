@@ -14,7 +14,6 @@ public interface IAdminUserService
     Task<List<UserAdminListDto>> GetRejectedUsersAsync();
     Task<ServiceResult> ApproveUserAsync(Guid userId);
     Task<ServiceResult> RejectUserAsync(Guid userId);
-
     Task<ServiceResult> SetUserRoleAsync(Guid userId, UserRole role);
 
 }
