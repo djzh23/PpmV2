@@ -1,14 +1,25 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace PpmV2.Application.Auth.DTOs;
 
-public class RegisterRequest
+public sealed class RegisterRequest
 {
-    public string Email { get; set; }
-    public string Password { get; set; }
-    public string Firstname { get; set; }
-    public string Lastname { get; set; }
-    //public string Role { get; set; } // later enum mapping (Admin, etc.)
+    [Required]
+    [MinLength(2)]
+    [MaxLength(100)]
+    public string Firstname { get; set; } = default!;
+
+    [Required]
+    [MinLength(2)]
+    [MaxLength(100)]
+    public string Lastname { get; set; } = default!;
+
+    [Required]
+    [EmailAddress]
+    [MaxLength(256)]
+    public string Email { get; set; } = default!;
+
+    [Required]
+    [MinLength(6)]
+    public string Password { get; set; } = default!;
 }

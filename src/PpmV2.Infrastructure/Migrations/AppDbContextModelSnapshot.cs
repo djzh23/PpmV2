@@ -125,6 +125,105 @@ namespace PpmV2.Infrastructure.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("PpmV2.Domain.Assignments.Location", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Address")
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("District")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsActive");
+
+                    b.HasIndex("District", "Name")
+                        .IsUnique();
+
+                    b.ToTable("Locations", (string)null);
+                });
+
+            modelBuilder.Entity("PpmV2.Domain.Einsaetze.Einsatz", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTime?>("EndAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("LocationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("StartAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LocationId");
+
+                    b.ToTable("Einsaetze", (string)null);
+                });
+
+            modelBuilder.Entity("PpmV2.Domain.Einsaetze.EinsatzParticipant", b =>
+                {
+                    b.Property<Guid>("EinsatzId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Role")
+                        .HasColumnType("int");
+
+                    b.HasKey("EinsatzId", "UserId");
+
+                    b.HasIndex("EinsatzId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("EinsatzId", "Role");
+
+                    b.ToTable("EinsatzParticipants", (string)null);
+                });
+
             modelBuilder.Entity("PpmV2.Domain.Users.UserProfile", b =>
                 {
                     b.Property<Guid>("Id")
@@ -160,7 +259,7 @@ namespace PpmV2.Infrastructure.Migrations
                     b.HasIndex("IdentityUserId")
                         .IsUnique();
 
-                    b.ToTable("UserProfiles");
+                    b.ToTable("UserProfiles", (string)null);
                 });
 
             modelBuilder.Entity("PpmV2.Infrastructure.Identity.AppRole", b =>
@@ -320,6 +419,24 @@ namespace PpmV2.Infrastructure.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("PpmV2.Domain.Einsaetze.Einsatz", b =>
+                {
+                    b.HasOne("PpmV2.Domain.Assignments.Location", null)
+                        .WithMany()
+                        .HasForeignKey("LocationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PpmV2.Domain.Einsaetze.EinsatzParticipant", b =>
+                {
+                    b.HasOne("PpmV2.Domain.Einsaetze.Einsatz", null)
+                        .WithMany("Participants")
+                        .HasForeignKey("EinsatzId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("PpmV2.Domain.Users.UserProfile", b =>
                 {
                     b.HasOne("PpmV2.Infrastructure.Identity.AppUser", null)
@@ -327,6 +444,11 @@ namespace PpmV2.Infrastructure.Migrations
                         .HasForeignKey("PpmV2.Domain.Users.UserProfile", "IdentityUserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("PpmV2.Domain.Einsaetze.Einsatz", b =>
+                {
+                    b.Navigation("Participants");
                 });
 
             modelBuilder.Entity("PpmV2.Infrastructure.Identity.AppUser", b =>
