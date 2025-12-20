@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using PpmV2.Application.Shifts.Commands.Creation;
 using PpmV2.Application.Shifts.DTOs;
-using PpmV2.Application.Shifts.Queries.GetEinsatzDetails;
+using PpmV2.Application.Shifts.Queries.GetShiftDetails;
 
 namespace PpmV2.Api.Controllers.Einsaetze;
 
@@ -11,9 +11,9 @@ namespace PpmV2.Api.Controllers.Einsaetze;
 public class ShiftsController : ControllerBase
 {
     private readonly CreateShiftHandler _create;
-    private readonly GetEinsatzDetailsHandler _get;
+    private readonly GetShiftDetailsHandler _get;
 
-    public ShiftsController( CreateShiftHandler create,GetEinsatzDetailsHandler get)
+    public ShiftsController( CreateShiftHandler create, GetShiftDetailsHandler get)
     {
         _create = create;
         _get = get;
