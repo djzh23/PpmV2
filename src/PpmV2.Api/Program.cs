@@ -2,8 +2,12 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using PpmV2.Api.Middleware;
 using PpmV2.Application.Admin.Interfaces;
-using PpmV2.Application.Auth.Services;
+using PpmV2.Application.Auth.Interfaces;
+using PpmV2.Application.Einsaetze.Commands.Creation;
+using PpmV2.Application.Einsaetze.Interfaces;
+using PpmV2.Application.Einsaetze.Queries.GetEinsatzDetails;
 using PpmV2.Application.Locations.Interfaces;
 using PpmV2.Application.Users.Interfaces;
 using PpmV2.Domain.Users;
@@ -13,12 +17,20 @@ using PpmV2.Infrastructure.Auth;
 using PpmV2.Infrastructure.Identity;
 using PpmV2.Infrastructure.Locations.Services;
 using PpmV2.Infrastructure.Persistence;
+using PpmV2.Infrastructure.Persistence.Einsaetze.Repositories;
 using PpmV2.Infrastructure.Persistence.Users;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 var environment = builder.Environment.EnvironmentName;
 
+//builder.Services.AddCors(options =>
+//{
+//    options.AddPolicy("DevCors", policy =>
+//        policy.AllowAnyOrigin()
+//              .AllowAnyHeader()
+//              .AllowAnyMethod());
+//});
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
@@ -94,6 +106,12 @@ builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("AdminOnly", policy =>
         policy.RequireRole(UserRole.Admin.ToString()));
+
+    options.AddPolicy("EinsatzCreate", policy =>
+        policy.RequireRole(
+            UserRole.Coordinator.ToString(),
+            UserRole.Festmitarbeiter.ToString()
+        ));
 });
 
 
@@ -107,6 +125,23 @@ builder.Services.AddScoped<IAdminUserService, AdminUserService>();
 
 builder.Services.AddScoped<ILocationQueryService, LocationQueryService>();
 
+builder.Services.AddScoped<IEinsatzRepository, EinsatzRepository>();
+builder.Services.AddScoped<IEinsatzDetailsQuery, EinsatzRepository>();
+builder.Services.AddScoped<CreateEinsatzHandler>();
+builder.Services.AddScoped<GetEinsatzDetailsHandler>();
+
+
+var allowedOrigins = builder.Configuration
+    .GetSection("Cors:AllowedOrigins")
+    .Get<string[]>() ?? Array.Empty<string>();
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("FrontendCors", policy =>
+        policy.WithOrigins(allowedOrigins)
+              .AllowAnyHeader()
+              .AllowAnyMethod());
+});
 
 var app = builder.Build();
 
@@ -115,6 +150,11 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi(); // generiert /openapi/v1.json
 }
+
+app.UseCors("FrontendCors");
+
+app.UseMiddleware<ExceptionHandlingMiddleware>();
+
 app.UseHttpsRedirection();
 
 app.UseAuthentication();
