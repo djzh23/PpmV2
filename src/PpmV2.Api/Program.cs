@@ -6,19 +6,18 @@ using PpmV2.Api.Middleware;
 using PpmV2.Application.Admin.Interfaces;
 using PpmV2.Application.Auth.Interfaces;
 using PpmV2.Application.Einsaetze.Commands.Creation;
-using PpmV2.Application.Einsaetze.Interfaces;
 using PpmV2.Application.Einsaetze.Queries.GetEinsatzDetails;
 using PpmV2.Application.Locations.Interfaces;
+using PpmV2.Application.Shifts.Interfaces;
 using PpmV2.Application.Users.Interfaces;
 using PpmV2.Domain.Users;
 using PpmV2.Infrastructure.Admin.Seeding;
 using PpmV2.Infrastructure.Admin.Services;
 using PpmV2.Infrastructure.Auth;
 using PpmV2.Infrastructure.Identity;
-using PpmV2.Infrastructure.Locations.Services;
 using PpmV2.Infrastructure.Persistence;
-using PpmV2.Infrastructure.Persistence.Einsaetze.Repositories;
-using PpmV2.Infrastructure.Persistence.Users;
+using PpmV2.Infrastructure.Persistence.Queries;
+using PpmV2.Infrastructure.Persistence.Repositories;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -125,9 +124,9 @@ builder.Services.AddScoped<IAdminUserService, AdminUserService>();
 
 builder.Services.AddScoped<ILocationQueryService, LocationQueryService>();
 
-builder.Services.AddScoped<IEinsatzRepository, EinsatzRepository>();
-builder.Services.AddScoped<IEinsatzDetailsQuery, EinsatzRepository>();
-builder.Services.AddScoped<CreateEinsatzHandler>();
+builder.Services.AddScoped<IShiftRepository, ShiftRepository>();
+builder.Services.AddScoped<IShiftDetailsQuery, ShiftRepository>();
+builder.Services.AddScoped<CreateShiftHandler>();
 builder.Services.AddScoped<GetEinsatzDetailsHandler>();
 
 
