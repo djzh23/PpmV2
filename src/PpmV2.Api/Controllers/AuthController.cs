@@ -7,6 +7,14 @@ namespace PpmV2.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+/// <summary>
+/// Public authentication endpoints (register/login).
+/// </summary>
+/// <remarks>
+/// This controller acts as a thin HTTP boundary:
+/// - delegates all authentication logic to the application/infrastructure service
+/// - converts domain/application errors into ProblemDetails via ApiProblem
+/// </remarks>
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _auth;
@@ -18,9 +26,11 @@ public class AuthController : ControllerBase
     {
         var result = await _auth.RegisterAsync(request);
 
+        // Standardized error response mapping (ProblemDetails) for failed auth results.
         if (!result.Success)
             return ApiProblem.From(result.ToAppError(), HttpContext);
 
+        // Registration does not return a token (approval workflow).
         return Ok(new
         {
             userId = result.UserId,
