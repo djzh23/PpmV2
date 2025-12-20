@@ -8,7 +8,7 @@ using PpmV2.Application.Auth.Interfaces;
 using PpmV2.Application.Locations.Interfaces;
 using PpmV2.Application.Shifts.Commands.Creation;
 using PpmV2.Application.Shifts.Interfaces;
-using PpmV2.Application.Shifts.Queries.GetEinsatzDetails;
+using PpmV2.Application.Shifts.Queries.GetShiftDetails;
 using PpmV2.Application.Users.Interfaces;
 using PpmV2.Domain.Users;
 using PpmV2.Infrastructure.Admin.Seeding;
@@ -127,7 +127,7 @@ builder.Services.AddScoped<ILocationQueryService, LocationQueryService>();
 builder.Services.AddScoped<IShiftRepository, ShiftRepository>();
 builder.Services.AddScoped<IShiftDetailsQuery, ShiftRepository>();
 builder.Services.AddScoped<CreateShiftHandler>();
-builder.Services.AddScoped<GetEinsatzDetailsHandler>();
+builder.Services.AddScoped<GetShiftDetailsHandler>();
 
 
 var allowedOrigins = builder.Configuration
