@@ -2,7 +2,7 @@
 using PpmV2.Application.Shifts.Interfaces;
 using PpmV2.Domain.Shifts;
 
-namespace PpmV2.Application.Einsaetze.Commands.Creation;
+namespace PpmV2.Application.Shifts.Commands.Creation;
 
 public sealed class CreateShiftHandler
 {

@@ -1,4 +1,4 @@
-﻿namespace PpmV2.Application.Einsaetze.Commands.Creation;
+﻿namespace PpmV2.Application.Shifts.Commands.Creation;
 
 public sealed record CreateShiftCommand(
     string Title,

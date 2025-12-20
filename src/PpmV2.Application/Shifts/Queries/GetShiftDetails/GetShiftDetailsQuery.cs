@@ -1,7 +1,7 @@
 ﻿using PpmV2.Application.Shifts.DTOs;
 using PpmV2.Application.Shifts.Interfaces;
 
-namespace PpmV2.Application.Einsaetze.Queries.GetEinsatzDetails;
+namespace PpmV2.Application.Shifts.Queries.GetEinsatzDetails;
 
 public sealed record GetShiftDetailsQuery(Guid EinsatzId);
 

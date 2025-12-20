@@ -1,6 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <Compile Remove="Persistence\Locations\**" />
+    <EmbeddedResource Remove="Persistence\Locations\**" />
+    <None Remove="Persistence\Locations\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\PpmV2.Domain\PpmV2.Domain.csproj" />
     <ProjectReference Include="..\PpmV2.Application\PpmV2.Application.csproj" />
   </ItemGroup>
@@ -14,10 +20,6 @@
     </PackageReference>
     <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.0" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Persistence\Locations\" />
   </ItemGroup>
 
   <PropertyGroup>
