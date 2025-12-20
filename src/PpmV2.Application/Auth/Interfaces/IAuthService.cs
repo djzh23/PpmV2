@@ -1,6 +1,6 @@
 ﻿using PpmV2.Application.Auth.DTOs;
 
-namespace PpmV2.Application.Auth.Services;
+namespace PpmV2.Application.Auth.Interfaces;
 
 public interface IAuthService
 {

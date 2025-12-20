@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace PpmV2.Application.Auth.DTOs;
+﻿namespace PpmV2.Application.Auth.DTOs;
 
 public sealed class LoginRequest
 {
