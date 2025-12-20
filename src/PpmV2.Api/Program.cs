@@ -23,27 +23,16 @@ using System.Text;
 var builder = WebApplication.CreateBuilder(args);
 var environment = builder.Environment.EnvironmentName;
 
-//builder.Services.AddCors(options =>
-//{
-//    options.AddPolicy("DevCors", policy =>
-//        policy.AllowAnyOrigin()
-//              .AllowAnyHeader()
-//              .AllowAnyMethod());
-//});
-
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+// --- API setup (controllers + OpenAPI) ---
 builder.Services.AddOpenApi();
-
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
 
-// Add DbContext 
-//builder.Services.AddDbContext<AppDbContext>(options =>
-//{
-//    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
-//});
+// --- Persistence setup ---
+// For local development we use SQL Server.
+// For "Docker" environment we currently use an in-memory database to simplify container startup.
+// Note: In-memory DB is not persistent and should be used only for development/testing scenarios.
 
 if (environment == "Docker")
 {
@@ -61,7 +50,9 @@ else
     });
 }
 
-// Add Identity 
+// --- Identity setup ---
+// Identity manages credentials, password hashing and user store.
+// AppUser/AppRole are the domain-specific Identity models persisted via EF Core. 
 builder.Services
     .AddIdentity<AppUser, AppRole>(options =>
     {
@@ -73,7 +64,8 @@ builder.Services
 
 
 
-// JWT Authentication
+// --- JWT authentication setup ---
+// Token validation parameters are aligned with JwtTokenService configuration (Issuer/Audience/Key).
 var jwtSection = builder.Configuration.GetSection("Jwt");
 var jwtKey = jwtSection["Key"] ?? throw new InvalidOperationException("JWT Key is missing (Jwt:Key).");
 
@@ -96,16 +88,22 @@ builder.Services.AddAuthentication(options =>
         ValidIssuer = jwtSection["Issuer"],
         ValidAudience = jwtSection["Audience"],
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+        // Small clock skew to reduce token expiry issues caused by time drift.
         ClockSkew = TimeSpan.FromMinutes(1)
     };
 });
 
 
+// --- Authorization policies ---
+// Policies are used by controllers/endpoints to express access rules in a central, testable way.
 builder.Services.AddAuthorization(options =>
 {
+    // Admin endpoints
     options.AddPolicy("AdminOnly", policy =>
         policy.RequireRole(UserRole.Admin.ToString()));
 
+    // Shift creation is restricted to Coordinator and Festmitarbeiter
+    // (legacy name "EinsatzCreate" kept for now; can be renamed to "ShiftCreate" later).
     options.AddPolicy("EinsatzCreate", policy =>
         policy.RequireRole(
             UserRole.Coordinator.ToString(),
@@ -114,22 +112,26 @@ builder.Services.AddAuthorization(options =>
 });
 
 
-// AuthService
+// --- Dependency injection registrations ---
+// Infrastructure implementations for application ports.
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
-// UserProfile Repository
+
 builder.Services.AddScoped<IUserProfileRepository, UserProfileRepository>();
-
 builder.Services.AddScoped<IAdminUserService, AdminUserService>();
-
 builder.Services.AddScoped<ILocationQueryService, LocationQueryService>();
 
+// Shifts: repository serves as write-port and details query for v1.
 builder.Services.AddScoped<IShiftRepository, ShiftRepository>();
 builder.Services.AddScoped<IShiftDetailsQuery, ShiftRepository>();
+
+// Application handlers (use cases)
 builder.Services.AddScoped<CreateShiftHandler>();
 builder.Services.AddScoped<GetShiftDetailsHandler>();
 
 
+// --- CORS ---
+// Config-driven allowlist for frontend origins (e.g. local dev UI, hosted preview URL).
 var allowedOrigins = builder.Configuration
     .GetSection("Cors:AllowedOrigins")
     .Get<string[]>() ?? Array.Empty<string>();
@@ -144,14 +146,16 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// --- HTTP pipeline ---
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi(); // generiert /openapi/v1.json
+    // Generates /openapi/v1.json
+    app.MapOpenApi();
 }
 
 app.UseCors("FrontendCors");
 
+// Central exception -> ProblemDetails mapping (currently handles ValidationException).
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 app.UseHttpsRedirection();
@@ -163,7 +167,9 @@ app.MapControllers();
 
 
 
-// Seed Admin user (idempotent)
+// --- Seeding ---
+// Seeds an initial admin user based on configuration (idempotent).
+// Intended for controlled environments only (AdminSeed:Enabled).
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
