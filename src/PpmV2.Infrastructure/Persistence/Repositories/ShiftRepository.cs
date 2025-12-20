@@ -6,6 +6,19 @@ using PpmV2.Domain.Users;
 
 namespace PpmV2.Infrastructure.Persistence.Repositories;
 
+/// <summary>
+/// EF Core persistence implementation for Shifts(Einsaetze).
+/// </summary>
+/// <remarks>
+/// This class currently implements both:
+/// - the write-side repository (IShiftRepository), and
+/// - the read-side details query (IShiftDetailsQuery).
+///
+/// For v1 this keeps the persistence code in one place. If the read model becomes more complex,
+/// the query can be extracted into a dedicated query service.
+/// 
+/// Note: Some members still use legacy naming ("Einsaetze") for compatibility with the existing schema.
+/// </remarks>
 public sealed class ShiftRepository : IShiftRepository, IShiftDetailsQuery
 {
     private readonly AppDbContext _db;
@@ -14,12 +27,21 @@ public sealed class ShiftRepository : IShiftRepository, IShiftDetailsQuery
 
     // ---------- Write-Port (Create) ----------
 
+    /// <summary>Checks if a referenced Location exists.</summary>
     public Task<bool> LocationExistsAsync(Guid locationId, CancellationToken ct) =>
         _db.Locations.AnyAsync(l => l.Id == locationId, ct);
 
+    /// <summary>
+    /// Counts how many of the given user ids exist in the Identity user store.
+    /// Used to validate participant inputs before creating the shift.
+    /// </summary>
     public Task<int> CountExistingUsersAsync(IReadOnlyCollection<Guid> userIds, CancellationToken ct) =>
         _db.Users.CountAsync(u => userIds.Contains(u.Id), ct);
 
+    /// <summary>
+    /// Adds a new Shift aggregate and its participants to the unit of work.
+    /// Call SaveChangesAsync to persist.
+    /// </summary>
     public Task AddAsync(Shift einsatz, IReadOnlyCollection<ShiftParticipant> participants, CancellationToken ct)
     {
         _db.Einsaetze.Add(einsatz);
@@ -27,6 +49,7 @@ public sealed class ShiftRepository : IShiftRepository, IShiftDetailsQuery
         return Task.CompletedTask;
     }
 
+    /// <summary>Persists all pending changes to the database.</summary>
     public Task SaveChangesAsync(CancellationToken ct) =>
         _db.SaveChangesAsync(ct);
 

@@ -4,6 +4,13 @@ using PpmV2.Domain.Locations;
 
 namespace PpmV2.Infrastructure.Persistence.Configurations;
 
+/// <summary>
+/// EF Core configuration for Location.
+/// </summary>
+/// <remarks>
+/// A Location represents a place(Unterkunft) where a Shift/Einsatz or an Event can happen
+/// (e.g., Location accommodation, external activity venue, camp site).
+/// </remarks>
 public sealed class LocationConfiguration : IEntityTypeConfiguration<Location>
 {
     public void Configure(EntityTypeBuilder<Location> builder)
@@ -30,10 +37,10 @@ public sealed class LocationConfiguration : IEntityTypeConfiguration<Location>
 
         builder.Property(x => x.CreatedAt).IsRequired();
 
-        // Prevents duplicates in the same district
+        // Prevent duplicates within the same district (e.g. two entries with identical name + district).
         builder.HasIndex(x => new { x.District, x.Name }).IsUnique();
 
-        // optional for fast filters
+        // Useful for frequent filtering on active/inactive locations.
         builder.HasIndex(x => x.IsActive);
     }
 }

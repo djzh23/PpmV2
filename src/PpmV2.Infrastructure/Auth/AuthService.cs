@@ -8,6 +8,17 @@ using PpmV2.Infrastructure.Identity;
 
 namespace PpmV2.Infrastructure.Auth;
 
+/// <summary>
+/// Infrastructure implementation of authentication use cases (register/login).
+/// </summary>
+/// <remarks>
+/// This service integrates ASP.NET Core Identity (UserManager) with the application domain:
+/// - Uses Identity for credentials and secure password validation.
+/// - Uses UserProfile repository for application-specific profile data.
+/// - Issues JWT tokens based on domain-relevant claims.
+///
+/// Note: We intentionally avoid leaking whether an email exists during login.
+/// </remarks>
 public sealed class AuthService : IAuthService
 {
     private readonly UserManager<AppUser> _userManager;
@@ -24,9 +35,15 @@ public sealed class AuthService : IAuthService
         _jwtTokenService = jwtTokenService;
     }
 
+    /// <summary>
+    /// Authenticates a user and returns a JWT token if credentials are valid and the account is approved.
+    /// </summary>
+    /// <remarks>
+    /// Security note: The method returns a generic error for invalid credentials to prevent user enumeration.
+    /// </remarks>
     public async Task<AuthResult> LoginAsync(LoginRequest request)
     {
-        // Service-level validation (robust, unabhängig von DTO/DataAnnotations)
+        // Service - level validation to keep the service robust even if DTO - level validation is bypassed.
         var validationErrors = new Dictionary<string, string[]>();
 
         if (string.IsNullOrWhiteSpace(request.Email))
@@ -46,7 +63,7 @@ public sealed class AuthService : IAuthService
 
         var user = await _userManager.FindByEmailAsync(request.Email);
 
-        // Do not leak whether the email exists
+        // Do not leak whether the email exists (prevents user enumeration).
         if (user == null)
         {
             return AuthResult.Fail(
@@ -65,6 +82,7 @@ public sealed class AuthService : IAuthService
             );
         }
 
+        // Enforce approval workflow before allowing access.
         if (user.Status != UserStatus.Approved)
         {
             return AuthResult.Fail(
@@ -73,6 +91,7 @@ public sealed class AuthService : IAuthService
             );
         }
 
+        // Domain-relevant information is embedded into the JWT as claims for authorization decisions.
         var claims = new JwtUserClaims(
             UserId: user.Id,
             Email: user.Email!,
@@ -89,9 +108,15 @@ public sealed class AuthService : IAuthService
         );
     }
 
+    /// <summary>
+    /// Registers a new user with pending approval status and creates the associated UserProfile.
+    /// </summary>
+    /// <remarks>
+    /// The newly created account is set to Pending and does not receive a JWT token until approved.
+    /// </remarks>
     public async Task<AuthResult> RegisterAsync(RegisterRequest request)
     {
-        // Service-level validation (robust, unabhängig von DTO/DataAnnotations)
+        // Service-level validation to keep the service robust even if DTO-level validation is bypassed.
         var errors = new Dictionary<string, string[]>();
 
         if (string.IsNullOrWhiteSpace(request.Firstname))
@@ -115,7 +140,7 @@ public sealed class AuthService : IAuthService
             );
         }
 
-        // Duplicate check
+        // Duplicate check (email is used as username).
         var existingUser = await _userManager.FindByEmailAsync(request.Email);
         if (existingUser != null)
         {
@@ -129,7 +154,7 @@ public sealed class AuthService : IAuthService
             );
         }
 
-        // Create Identity user
+        // Create Identity user (credentials + account state).
         var appUser = new AppUser
         {
             UserName = request.Email, // you use email as username
@@ -158,7 +183,7 @@ public sealed class AuthService : IAuthService
             );
         }
 
-        // Create domain profile (UserProfile)
+        // Create domain profile (application-specific user data).
         var profile = new UserProfile
         {
             IdentityUserId = appUser.Id,
@@ -171,6 +196,7 @@ public sealed class AuthService : IAuthService
         await _userProfileRepository.AddAsync(profile);
         await _userProfileRepository.SaveChangesAsync();
 
+        // Token is intentionally null: user must be approved by admin before login is allowed.
         return AuthResult.Ok(
             userId: appUser.Id,
             email: appUser.Email!,
@@ -178,10 +204,13 @@ public sealed class AuthService : IAuthService
         );
     }
 
+    /// <summary>
+    /// Maps ASP.NET Identity errors into a field-based dictionary compatible with API validation responses.
+    /// </summary>
     private static Dictionary<string, string[]> MapIdentityErrors(IdentityResult identityResult)
     {
         // Best-effort mapping into field-based errors.
-        // IdentityError.Code differs per provider; we map by Code/Description.
+        // IdentityError.Code may vary across providers; we map by Code/Description heuristics.
         var grouped = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var e in identityResult.Errors)
@@ -200,6 +229,9 @@ public sealed class AuthService : IAuthService
         return grouped.ToDictionary(kv => kv.Key, kv => kv.Value.ToArray(), StringComparer.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// Attempts to infer a request field name (email/password/register) from an IdentityError.
+    /// </summary>
     private static string InferFieldKey(IdentityError e)
     {
         var code = e.Code ?? string.Empty;
@@ -211,7 +243,7 @@ public sealed class AuthService : IAuthService
             return "email";
 
         if (code.Contains("UserName", StringComparison.OrdinalIgnoreCase))
-            return "email"; // you use Email as UserName
+            return "email"; // Email is used as UserName
 
         var desc = e.Description ?? string.Empty;
 

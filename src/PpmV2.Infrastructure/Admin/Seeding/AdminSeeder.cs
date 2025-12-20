@@ -8,6 +8,18 @@ using PpmV2.Infrastructure.Persistence;
 
 namespace PpmV2.Infrastructure.Admin.Seeding;
 
+// <summary>
+/// Seeds an initial admin account based on configuration.
+/// </summary>
+/// <remarks>
+/// This seeder is:
+/// - opt-in via configuration (AdminSeed:Enabled)
+/// - idempotent (can be executed multiple times safely)
+/// - responsible for enforcing minimal invariants for the admin user and profile
+///
+/// The goal is to ensure that an administrator exists in non-production environments
+/// (or in controlled production setups) without manual database manipulation.
+/// </remarks>
 public static class AdminSeeder
 {
     public static async Task SeedAsync(
@@ -18,6 +30,7 @@ public static class AdminSeeder
     {
         var section = configuration.GetSection("AdminSeed");
 
+        // Config flag to avoid accidental seeding in unwanted environments.
         var enabled = bool.TryParse(section["Enabled"], out var isEnabled) && isEnabled;
         if (!enabled)
         {
@@ -34,6 +47,7 @@ public static class AdminSeeder
             return;
         }
 
+        // Find or create the admin identity user.
         var user = await userManager.FindByEmailAsync(email);
 
         if (user == null)
@@ -59,7 +73,7 @@ public static class AdminSeeder
             logger.LogInformation("AdminSeeder: created admin user {Email}", email);
         }
 
-        // Ensure invariants for existing or newly created user
+        // Ensure invariants for existing or newly created user (idempotent enforcement).
         var changed = false;
 
         if (user.Role != UserRole.Admin) { user.Role = UserRole.Admin; changed = true; }
@@ -78,7 +92,7 @@ public static class AdminSeeder
             }
         }
 
-        // Ensure profile exists and is filled
+        // Ensure profile exists for the admin user (Identity <-> UserProfile 1:1).
         var profileExists = await dbContext.UserProfiles
             .AnyAsync(p => p.IdentityUserId == user.Id);
 
@@ -100,7 +114,7 @@ public static class AdminSeeder
         }
         else
         {
-            // Optional: enforce names (only if empty)
+            // Optional: enforce profile display names only when missing (avoid overwriting real data).
             var profile = await dbContext.UserProfiles.FirstAsync(p => p.IdentityUserId == user.Id);
 
             var pChanged = false;

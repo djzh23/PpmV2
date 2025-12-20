@@ -1,5 +1,12 @@
 ﻿namespace PpmV2.Application.Common.Exceptions;
 
+/// <summary>
+/// Exception type representing validation failures in application use cases.
+/// </summary>
+/// <remarks>
+/// This exception is thrown when business or input validation rules are violated.
+/// It is translated into a standardized ProblemDetails response by the API middleware.
+/// </remarks>
 public sealed class ValidationException : Exception
 {
     public string Code { get; }

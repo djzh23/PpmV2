@@ -4,6 +4,16 @@ using PpmV2.Domain.Shifts;
 
 namespace PpmV2.Application.Shifts.Commands.Creation;
 
+/// <summary>
+/// Application use case handler for creating a Shift in Draft status.
+/// </summary>
+/// <remarks>
+/// Responsibilities:
+/// - Validate input and enforce creation-time invariants
+/// - Validate referenced entities (Location, Users)
+/// - Create the Shift aggregate and persist it via repository
+///
+/// Note: Publishing rules (e.g. readiness) are handled in dedicated use cases.
 public sealed class CreateShiftHandler
 {
     private readonly IShiftRepository _repo;
@@ -14,12 +24,14 @@ public sealed class CreateShiftHandler
     {
         var errors = new Dictionary<string, string[]>();
 
+        // Collect field-level validation errors to return a consistent ProblemDetails response.
         if (string.IsNullOrWhiteSpace(cmd.Title))
             errors["title"] = new[] { "Title is required." };
 
         if (cmd.EndAtUtc is not null && cmd.EndAtUtc <= cmd.StartAtUtc)
             errors["endAtUtc"] = new[] { "EndAtUtc must be after StartAtUtc." };
 
+        // Invariant (creation): exactly one Leader must be present.
         if (cmd.Participants is null || cmd.Participants.Count == 0)
             errors["participants"] = new[] { "At least one participant is required." };
         else
@@ -34,7 +46,7 @@ public sealed class CreateShiftHandler
         if (errors.Count > 0)
             throw new ValidationException(errors);
 
-        // FK checks
+        // Referential integrity checks (defensive validation before persistence).
         if (!await _repo.LocationExistsAsync(cmd.LocationId, ct))
             throw new ValidationException(new Dictionary<string, string[]>
             {
@@ -49,7 +61,7 @@ public sealed class CreateShiftHandler
                 ["participants.userId"] = new[] { "One or more UserIds do not exist." }
             });
 
-        // Create
+        // Create Shift aggregate in Draft status.
         var einsatzId = Guid.NewGuid();
 
         var einsatz = new Shift
