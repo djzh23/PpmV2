@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using PpmV2.Application.Einsaetze.Commands.Creation;
-using PpmV2.Application.Einsaetze.Queries.GetEinsatzDetails;
+using PpmV2.Application.Shifts.Commands.Creation;
 using PpmV2.Application.Shifts.DTOs;
+using PpmV2.Application.Shifts.Queries.GetEinsatzDetails;
 
 namespace PpmV2.Api.Controllers.Einsaetze;
 
