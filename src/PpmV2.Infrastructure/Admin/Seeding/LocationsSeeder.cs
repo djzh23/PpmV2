@@ -28,19 +28,20 @@ public static class LocationsSeeder
         }
 
         dbContext.Locations.AddRange(
-            new() { Name = "Wohnunterkunft Neuenfelde", District = "Wilhelmsburg", Address = "Karl-Arnold-Ring", IsActive = true, Notes = null },
-            new() { Name = "Wohnunterkunft Curslack I", District = "Bergedorf", Address = "Curslacker Heerweg", IsActive = true, Notes = null },
-            new() { Name = "Wohnunterkunft Hamm", District = "Hamm", Address = "Friesenstraße 14", IsActive = true, Notes = null },
-            new() { Name = "Wohnunterkunft Kirchwerder", District = "Kirchwerder", Address = "Am Süderbrack 9", IsActive = true, Notes = null },
-            new() { Name = "Wohnunterkunft Harburg", District = "Harburg", Address = "Am Röhricht 18", IsActive = true, Notes = null },
-            new() { Name = "Erstunterkunft Harburg", District = "Harburg", Address = "Neuländer Platz 1", IsActive = true, Notes = "Große Unterkunft" },
-            new() { Name = "Wohnunterkunft Billbrook", District = "Billbrook", Address = "Benzelstraße 5", IsActive = true, Notes = null },
-            new() { Name = "UPH HafenCity", District = "Kirchwerder", Address = "Haberföken 2", IsActive = true, Notes = "Unbegleitete minderjährige" },
-            new() { Name = "Wohnunterkunft Curslack II", District = "Bergedorf", Address = "Curslacker Heerweg", IsActive = true, Notes = null },
-            new() { Name = "Wohnunterkunft Brookkehre", District = "Bergedorf", Address = "Brookkehre 7", IsActive = true, Notes = null },
-            new() { Name = "Wohnunterkunft Gleisdreieck", District = "Bergedorf", Address = "Am Gleisdreieck", IsActive = true, Notes = null },
-            new() { Name = "Wohnunterkunft Vogelhüttendeich", District = "Wilhelmsburg", Address = "Vogelhüttendeich", IsActive = true, Notes = null }
+            new() { Name = "Wohnanlage Elbpark", District = "Altona", Address = "Elbchaussee 212", IsActive = true, Notes = null },
+            new() { Name = "Sozialunterkunft Nordlicht", District = "Eimsbüttel", Address = "Lutterothstraße 98", IsActive = true, Notes = null },
+            new() { Name = "Wohnzentrum Süderelbe", District = "Harburg", Address = "Rehrstieg 45", IsActive = true, Notes = null },
+            new() { Name = "Unterkunft Am Stadtdeich", District = "Rothenburgsort", Address = "Billwerder Neuer Deich 23", IsActive = true, Notes = null },
+            new() { Name = "Wohnhaus Sonnenhof", District = "Wandsbek", Address = "Friedrich-Ebert-Damm 112", IsActive = true, Notes = null },
+            new() { Name = "Erstaufnahme Elbbrücken", District = "Hammerbrook", Address = "Spaldingstraße 160", IsActive = true, Notes = "Zentrale Erstaufnahme" },
+            new() { Name = "Gemeinschaftsunterkunft Moorfleet", District = "Moorfleet", Address = "Moorfleeter Hauptdeich 75", IsActive = true, Notes = null },
+            new() { Name = "UPH Alsterblick", District = "Winterhude", Address = "Barmbeker Straße 87", IsActive = true, Notes = "Unbegleitete Minderjährige" },
+            new() { Name = "Wohnanlage Grünau", District = "Bergedorf", Address = "Lohbrügger Landstraße 210", IsActive = true, Notes = null },
+            new() { Name = "Unterkunft Am Gleisfeld", District = "Billstedt", Address = "Manshardtstraße 64", IsActive = true, Notes = null },
+            new() { Name = "Wohnunterkunft Hafenrand", District = "Veddel", Address = "Peutestraße 42", IsActive = true, Notes = null },
+            new() { Name = "Wohnprojekt Regenbogenhof", District = "Wilhelmsburg", Address = "Krieterstraße 18", IsActive = true, Notes = null }
         );
+
 
         await dbContext.SaveChangesAsync();
 
