@@ -23,6 +23,10 @@ using System.Text;
 var builder = WebApplication.CreateBuilder(args);
 var environment = builder.Environment.EnvironmentName;
 
+var postgresConn = builder.Configuration.GetConnectionString("PostgresConnection");
+var sqlServerConn = builder.Configuration.GetConnectionString("DefaultConnection");
+
+
 // --- API setup (controllers + OpenAPI) ---
 builder.Services.AddOpenApi();
 builder.Services.AddControllers();
@@ -34,20 +38,19 @@ builder.Services.AddEndpointsApiExplorer();
 // For "Docker" environment we currently use an in-memory database to simplify container startup.
 // Note: In-memory DB is not persistent and should be used only for development/testing scenarios.
 
-if (environment == "Docker")
-{
-    builder.Services.AddDbContext<AppDbContext>(options =>
-    {
-        options.UseInMemoryDatabase("PpmV2DockerDb");
 
-    });
+if (!string.IsNullOrWhiteSpace(postgresConn))
+{
+    builder.Services.AddDbContext<AppDbContext>(o => o.UseNpgsql(postgresConn));
+}
+else if (!string.IsNullOrWhiteSpace(sqlServerConn))
+{
+    builder.Services.AddDbContext<AppDbContext>(o => o.UseSqlServer(sqlServerConn));
 }
 else
 {
-    builder.Services.AddDbContext<AppDbContext>(options =>
-    {
-        options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
-    });
+    // fallback only for local Scenarios
+    builder.Services.AddDbContext<AppDbContext>(o => o.UseInMemoryDatabase("PpmV2DevDb"));
 }
 
 // --- Identity setup ---
@@ -175,12 +178,20 @@ using (var scope = app.Services.CreateScope())
     var services = scope.ServiceProvider;
 
     var userManager = services.GetRequiredService<UserManager<AppUser>>();
-    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var dbContext = services.GetRequiredService<AppDbContext>();
     var configuration = services.GetRequiredService<IConfiguration>();
-    var logger = services.GetRequiredService<ILoggerFactory>().CreateLogger("AdminSeeder");
+    var loggerFactory = services.GetRequiredService<ILoggerFactory>();
 
-    await AdminSeeder.SeedAsync(userManager, dbContext, configuration, logger);
+    if (dbContext.Database.IsRelational())
+    {
+        await dbContext.Database.MigrateAsync();
+    }
+
+    await AdminSeeder.SeedAsync(userManager, dbContext, configuration, loggerFactory.CreateLogger("AdminSeeder"));
+    await DemoUsersSeeder.SeedAsync(userManager, dbContext, configuration, loggerFactory.CreateLogger("DemoUsersSeeder"));
+    await LocationsSeeder.SeedAsync(dbContext, configuration, loggerFactory.CreateLogger("LocationsSeeder"));
 }
+
 
 
 app.Run();
