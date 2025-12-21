@@ -1,0 +1,17 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: ppmv2-postgres
+    environment:
+      POSTGRES_DB: ppmv2
+      POSTGRES_USER: ppmv2
+      POSTGRES_PASSWORD: ppmv2_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - ppmv2_pgdata:/var/lib/postgresql/data
+
+volumes:
+  ppmv2_pgdata:
