@@ -16,7 +16,7 @@ public class UserProfileConfiguration : IEntityTypeConfiguration<UserProfile>
 {
     public void Configure(EntityTypeBuilder<UserProfile> builder)
     {
-        builder.ToTable("UserProfiles");
+        builder.ToTable("user_profiles");
 
         builder.HasKey(p => p.Id);
 

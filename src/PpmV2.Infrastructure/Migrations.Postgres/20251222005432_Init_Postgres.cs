@@ -13,7 +13,25 @@ namespace PpmV2.Infrastructure.Migrations.Postgres
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "AspNetRoles",
+                name: "locations",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    District = table.Column<string>(type: "character varying(120)", maxLength: 120, nullable: false),
+                    Address = table.Column<string>(type: "character varying(250)", maxLength: 250, nullable: true),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    Notes = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_locations", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "roles",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -23,11 +41,11 @@ namespace PpmV2.Infrastructure.Migrations.Postgres
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_AspNetRoles", x => x.Id);
+                    table.PrimaryKey("PK_roles", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
-                name: "AspNetUsers",
+                name: "users",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -52,29 +70,34 @@ namespace PpmV2.Infrastructure.Migrations.Postgres
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_AspNetUsers", x => x.Id);
+                    table.PrimaryKey("PK_users", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
-                name: "Locations",
+                name: "shifts",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
-                    District = table.Column<string>(type: "character varying(120)", maxLength: 120, nullable: false),
-                    Address = table.Column<string>(type: "character varying(250)", maxLength: 250, nullable: true),
-                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
-                    Notes = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                    Title = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    Description = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
+                    StartAtUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    EndAtUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LocationId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Status = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Locations", x => x.Id);
+                    table.PrimaryKey("PK_shifts", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_shifts_locations_LocationId",
+                        column: x => x.LocationId,
+                        principalTable: "locations",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
-                name: "AspNetRoleClaims",
+                name: "role_claims",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -85,17 +108,17 @@ namespace PpmV2.Infrastructure.Migrations.Postgres
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_AspNetRoleClaims", x => x.Id);
+                    table.PrimaryKey("PK_role_claims", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_AspNetRoleClaims_AspNetRoles_RoleId",
+                        name: "FK_role_claims_roles_RoleId",
                         column: x => x.RoleId,
-                        principalTable: "AspNetRoles",
+                        principalTable: "roles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
-                name: "AspNetUserClaims",
+                name: "user_claims",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -106,17 +129,17 @@ namespace PpmV2.Infrastructure.Migrations.Postgres
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_AspNetUserClaims", x => x.Id);
+                    table.PrimaryKey("PK_user_claims", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_AspNetUserClaims_AspNetUsers_UserId",
+                        name: "FK_user_claims_users_UserId",
                         column: x => x.UserId,
-                        principalTable: "AspNetUsers",
+                        principalTable: "users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
-                name: "AspNetUserLogins",
+                name: "user_logins",
                 columns: table => new
                 {
                     LoginProvider = table.Column<string>(type: "text", nullable: false),
@@ -126,61 +149,17 @@ namespace PpmV2.Infrastructure.Migrations.Postgres
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_AspNetUserLogins", x => new { x.LoginProvider, x.ProviderKey });
+                    table.PrimaryKey("PK_user_logins", x => new { x.LoginProvider, x.ProviderKey });
                     table.ForeignKey(
-                        name: "FK_AspNetUserLogins_AspNetUsers_UserId",
+                        name: "FK_user_logins_users_UserId",
                         column: x => x.UserId,
-                        principalTable: "AspNetUsers",
+                        principalTable: "users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
-                name: "AspNetUserRoles",
-                columns: table => new
-                {
-                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
-                    RoleId = table.Column<Guid>(type: "uuid", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_AspNetUserRoles", x => new { x.UserId, x.RoleId });
-                    table.ForeignKey(
-                        name: "FK_AspNetUserRoles_AspNetRoles_RoleId",
-                        column: x => x.RoleId,
-                        principalTable: "AspNetRoles",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_AspNetUserRoles_AspNetUsers_UserId",
-                        column: x => x.UserId,
-                        principalTable: "AspNetUsers",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "AspNetUserTokens",
-                columns: table => new
-                {
-                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
-                    LoginProvider = table.Column<string>(type: "text", nullable: false),
-                    Name = table.Column<string>(type: "text", nullable: false),
-                    Value = table.Column<string>(type: "text", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_AspNetUserTokens", x => new { x.UserId, x.LoginProvider, x.Name });
-                    table.ForeignKey(
-                        name: "FK_AspNetUserTokens_AspNetUsers_UserId",
-                        column: x => x.UserId,
-                        principalTable: "AspNetUsers",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "UserProfiles",
+                name: "user_profiles",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -194,129 +173,150 @@ namespace PpmV2.Infrastructure.Migrations.Postgres
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_UserProfiles", x => x.Id);
+                    table.PrimaryKey("PK_user_profiles", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_UserProfiles_AspNetUsers_IdentityUserId",
+                        name: "FK_user_profiles_users_IdentityUserId",
                         column: x => x.IdentityUserId,
-                        principalTable: "AspNetUsers",
+                        principalTable: "users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
-                name: "Einsaetze",
+                name: "user_roles",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    Title = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
-                    Description = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
-                    StartAtUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    EndAtUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LocationId = table.Column<Guid>(type: "uuid", nullable: false),
-                    Status = table.Column<int>(type: "integer", nullable: false)
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
+                    RoleId = table.Column<Guid>(type: "uuid", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Einsaetze", x => x.Id);
+                    table.PrimaryKey("PK_user_roles", x => new { x.UserId, x.RoleId });
                     table.ForeignKey(
-                        name: "FK_Einsaetze_Locations_LocationId",
-                        column: x => x.LocationId,
-                        principalTable: "Locations",
+                        name: "FK_user_roles_roles_RoleId",
+                        column: x => x.RoleId,
+                        principalTable: "roles",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_user_roles_users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
-                name: "EinsatzParticipants",
+                name: "user_tokens",
                 columns: table => new
                 {
-                    EinsatzId = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
+                    LoginProvider = table.Column<string>(type: "text", nullable: false),
+                    Name = table.Column<string>(type: "text", nullable: false),
+                    Value = table.Column<string>(type: "text", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_user_tokens", x => new { x.UserId, x.LoginProvider, x.Name });
+                    table.ForeignKey(
+                        name: "FK_user_tokens_users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "shift_participants",
+                columns: table => new
+                {
+                    ShiftId = table.Column<Guid>(type: "uuid", nullable: false),
                     UserId = table.Column<Guid>(type: "uuid", nullable: false),
                     Role = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_EinsatzParticipants", x => new { x.EinsatzId, x.UserId });
+                    table.PrimaryKey("PK_shift_participants", x => new { x.ShiftId, x.UserId });
                     table.ForeignKey(
-                        name: "FK_EinsatzParticipants_Einsaetze_EinsatzId",
-                        column: x => x.EinsatzId,
-                        principalTable: "Einsaetze",
+                        name: "FK_shift_participants_shifts_ShiftId",
+                        column: x => x.ShiftId,
+                        principalTable: "shifts",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_AspNetRoleClaims_RoleId",
-                table: "AspNetRoleClaims",
-                column: "RoleId");
-
-            migrationBuilder.CreateIndex(
-                name: "RoleNameIndex",
-                table: "AspNetRoles",
-                column: "NormalizedName",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_AspNetUserClaims_UserId",
-                table: "AspNetUserClaims",
-                column: "UserId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_AspNetUserLogins_UserId",
-                table: "AspNetUserLogins",
-                column: "UserId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_AspNetUserRoles_RoleId",
-                table: "AspNetUserRoles",
-                column: "RoleId");
-
-            migrationBuilder.CreateIndex(
-                name: "EmailIndex",
-                table: "AspNetUsers",
-                column: "NormalizedEmail");
-
-            migrationBuilder.CreateIndex(
-                name: "UserNameIndex",
-                table: "AspNetUsers",
-                column: "NormalizedUserName",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Einsaetze_LocationId",
-                table: "Einsaetze",
-                column: "LocationId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_EinsatzParticipants_EinsatzId",
-                table: "EinsatzParticipants",
-                column: "EinsatzId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_EinsatzParticipants_EinsatzId_Role",
-                table: "EinsatzParticipants",
-                columns: new[] { "EinsatzId", "Role" });
-
-            migrationBuilder.CreateIndex(
-                name: "IX_EinsatzParticipants_UserId",
-                table: "EinsatzParticipants",
-                column: "UserId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Locations_District_Name",
-                table: "Locations",
+                name: "IX_locations_District_Name",
+                table: "locations",
                 columns: new[] { "District", "Name" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_Locations_IsActive",
-                table: "Locations",
+                name: "IX_locations_IsActive",
+                table: "locations",
                 column: "IsActive");
 
             migrationBuilder.CreateIndex(
-                name: "IX_UserProfiles_IdentityUserId",
-                table: "UserProfiles",
+                name: "IX_role_claims_RoleId",
+                table: "role_claims",
+                column: "RoleId");
+
+            migrationBuilder.CreateIndex(
+                name: "RoleNameIndex",
+                table: "roles",
+                column: "NormalizedName",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_shift_participants_ShiftId",
+                table: "shift_participants",
+                column: "ShiftId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_shift_participants_ShiftId_Role",
+                table: "shift_participants",
+                columns: new[] { "ShiftId", "Role" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_shift_participants_UserId",
+                table: "shift_participants",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_shifts_LocationId",
+                table: "shifts",
+                column: "LocationId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_user_claims_UserId",
+                table: "user_claims",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_user_logins_UserId",
+                table: "user_logins",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_user_profiles_IdentityUserId",
+                table: "user_profiles",
                 column: "IdentityUserId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_user_roles_RoleId",
+                table: "user_roles",
+                column: "RoleId");
+
+            migrationBuilder.CreateIndex(
+                name: "EmailIndex",
+                table: "users",
+                column: "NormalizedEmail");
+
+            migrationBuilder.CreateIndex(
+                name: "UserNameIndex",
+                table: "users",
+                column: "NormalizedUserName",
                 unique: true);
         }
 
@@ -324,37 +324,37 @@ namespace PpmV2.Infrastructure.Migrations.Postgres
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "AspNetRoleClaims");
+                name: "role_claims");
 
             migrationBuilder.DropTable(
-                name: "AspNetUserClaims");
+                name: "shift_participants");
 
             migrationBuilder.DropTable(
-                name: "AspNetUserLogins");
+                name: "user_claims");
 
             migrationBuilder.DropTable(
-                name: "AspNetUserRoles");
+                name: "user_logins");
 
             migrationBuilder.DropTable(
-                name: "AspNetUserTokens");
+                name: "user_profiles");
 
             migrationBuilder.DropTable(
-                name: "EinsatzParticipants");
+                name: "user_roles");
 
             migrationBuilder.DropTable(
-                name: "UserProfiles");
+                name: "user_tokens");
 
             migrationBuilder.DropTable(
-                name: "AspNetRoles");
+                name: "shifts");
 
             migrationBuilder.DropTable(
-                name: "Einsaetze");
+                name: "roles");
 
             migrationBuilder.DropTable(
-                name: "AspNetUsers");
+                name: "users");
 
             migrationBuilder.DropTable(
-                name: "Locations");
+                name: "locations");
         }
     }
 }

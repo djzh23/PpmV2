@@ -12,7 +12,7 @@ using PpmV2.Infrastructure.Persistence;
 namespace PpmV2.Infrastructure.Migrations.Postgres
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20251221151700_Init_Postgres")]
+    [Migration("20251222005432_Init_Postgres")]
     partial class Init_Postgres
     {
         /// <inheritdoc />
@@ -46,7 +46,7 @@ namespace PpmV2.Infrastructure.Migrations.Postgres
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("AspNetRoleClaims", (string)null);
+                    b.ToTable("role_claims", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<System.Guid>", b =>
@@ -70,7 +70,7 @@ namespace PpmV2.Infrastructure.Migrations.Postgres
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("AspNetUserClaims", (string)null);
+                    b.ToTable("user_claims", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<System.Guid>", b =>
@@ -91,7 +91,7 @@ namespace PpmV2.Infrastructure.Migrations.Postgres
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("AspNetUserLogins", (string)null);
+                    b.ToTable("user_logins", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<System.Guid>", b =>
@@ -106,7 +106,7 @@ namespace PpmV2.Infrastructure.Migrations.Postgres
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("AspNetUserRoles", (string)null);
+                    b.ToTable("user_roles", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<System.Guid>", b =>
@@ -125,7 +125,7 @@ namespace PpmV2.Infrastructure.Migrations.Postgres
 
                     b.HasKey("UserId", "LoginProvider", "Name");
 
-                    b.ToTable("AspNetUserTokens", (string)null);
+                    b.ToTable("user_tokens", (string)null);
                 });
 
             modelBuilder.Entity("PpmV2.Domain.Locations.Location", b =>
@@ -168,7 +168,7 @@ namespace PpmV2.Infrastructure.Migrations.Postgres
                     b.HasIndex("District", "Name")
                         .IsUnique();
 
-                    b.ToTable("Locations", (string)null);
+                    b.ToTable("locations", (string)null);
                 });
 
             modelBuilder.Entity("PpmV2.Domain.Shifts.Shift", b =>
@@ -202,12 +202,12 @@ namespace PpmV2.Infrastructure.Migrations.Postgres
 
                     b.HasIndex("LocationId");
 
-                    b.ToTable("Einsaetze", (string)null);
+                    b.ToTable("shifts", (string)null);
                 });
 
             modelBuilder.Entity("PpmV2.Domain.Shifts.ShiftParticipant", b =>
                 {
-                    b.Property<Guid>("EinsatzId")
+                    b.Property<Guid>("ShiftId")
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("UserId")
@@ -216,15 +216,15 @@ namespace PpmV2.Infrastructure.Migrations.Postgres
                     b.Property<int>("Role")
                         .HasColumnType("integer");
 
-                    b.HasKey("EinsatzId", "UserId");
+                    b.HasKey("ShiftId", "UserId");
 
-                    b.HasIndex("EinsatzId");
+                    b.HasIndex("ShiftId");
 
                     b.HasIndex("UserId");
 
-                    b.HasIndex("EinsatzId", "Role");
+                    b.HasIndex("ShiftId", "Role");
 
-                    b.ToTable("EinsatzParticipants", (string)null);
+                    b.ToTable("shift_participants", (string)null);
                 });
 
             modelBuilder.Entity("PpmV2.Domain.Users.UserProfile", b =>
@@ -262,7 +262,7 @@ namespace PpmV2.Infrastructure.Migrations.Postgres
                     b.HasIndex("IdentityUserId")
                         .IsUnique();
 
-                    b.ToTable("UserProfiles", (string)null);
+                    b.ToTable("user_profiles", (string)null);
                 });
 
             modelBuilder.Entity("PpmV2.Infrastructure.Identity.AppRole", b =>
@@ -289,7 +289,7 @@ namespace PpmV2.Infrastructure.Migrations.Postgres
                         .IsUnique()
                         .HasDatabaseName("RoleNameIndex");
 
-                    b.ToTable("AspNetRoles", (string)null);
+                    b.ToTable("roles", (string)null);
                 });
 
             modelBuilder.Entity("PpmV2.Infrastructure.Identity.AppUser", b =>
@@ -366,7 +366,7 @@ namespace PpmV2.Infrastructure.Migrations.Postgres
                         .IsUnique()
                         .HasDatabaseName("UserNameIndex");
 
-                    b.ToTable("AspNetUsers", (string)null);
+                    b.ToTable("users", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>
@@ -433,7 +433,7 @@ namespace PpmV2.Infrastructure.Migrations.Postgres
                 {
                     b.HasOne("PpmV2.Domain.Shifts.Shift", null)
                         .WithMany("Participants")
-                        .HasForeignKey("EinsatzId")
+                        .HasForeignKey("ShiftId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

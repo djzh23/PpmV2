@@ -77,7 +77,7 @@ public sealed class CreateShiftHandler
 
         var participants = cmd.Participants!.Select(p => new ShiftParticipant
         {
-            EinsatzId = einsatzId,
+            ShiftId = einsatzId,
             UserId = p.UserId,
             Role = p.Role
         }).ToList();

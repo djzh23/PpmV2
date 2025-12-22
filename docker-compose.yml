@@ -9,7 +9,7 @@ services:
       POSTGRES_USER: ppmv2
       POSTGRES_PASSWORD: ppmv2_password
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - ppmv2_pgdata:/var/lib/postgresql/data
 

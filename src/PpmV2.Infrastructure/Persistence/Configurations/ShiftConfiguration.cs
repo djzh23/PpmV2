@@ -21,7 +21,7 @@ public class ShiftConfiguration : IEntityTypeConfiguration<Shift>
     public void Configure(EntityTypeBuilder<Shift> builder)
     {
         // Keep legacy table name to avoid schema-breaking migrations during refactoring.
-        builder.ToTable("Einsaetze");
+        builder.ToTable("shifts");
 
         builder.HasKey(e => e.Id);
 
@@ -56,7 +56,7 @@ public class ShiftConfiguration : IEntityTypeConfiguration<Shift>
         // Participants are deleted automatically when the owning Shift is deleted.
         builder.HasMany(e => e.Participants)
             .WithOne()
-            .HasForeignKey(p => p.EinsatzId)
+            .HasForeignKey(p => p.ShiftId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 }

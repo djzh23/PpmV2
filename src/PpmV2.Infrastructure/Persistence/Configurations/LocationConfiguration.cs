@@ -15,7 +15,7 @@ public sealed class LocationConfiguration : IEntityTypeConfiguration<Location>
 {
     public void Configure(EntityTypeBuilder<Location> builder)
     {
-        builder.ToTable("Locations");
+        builder.ToTable("locations");
 
         builder.HasKey(x => x.Id);
 

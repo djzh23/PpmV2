@@ -177,6 +177,7 @@ using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
 
+    var roleManager = services.GetRequiredService<RoleManager<AppRole>>();
     var userManager = services.GetRequiredService<UserManager<AppUser>>();
     var dbContext = services.GetRequiredService<AppDbContext>();
     var configuration = services.GetRequiredService<IConfiguration>();
@@ -187,6 +188,7 @@ using (var scope = app.Services.CreateScope())
         await dbContext.Database.MigrateAsync();
     }
 
+    await RolesSeeder.SeedAsync(roleManager, loggerFactory.CreateLogger("RolesSeeder"));
     await AdminSeeder.SeedAsync(userManager, dbContext, configuration, loggerFactory.CreateLogger("AdminSeeder"));
     await DemoUsersSeeder.SeedAsync(userManager, dbContext, configuration, loggerFactory.CreateLogger("DemoUsersSeeder"));
     await LocationsSeeder.SeedAsync(dbContext, configuration, loggerFactory.CreateLogger("LocationsSeeder"));

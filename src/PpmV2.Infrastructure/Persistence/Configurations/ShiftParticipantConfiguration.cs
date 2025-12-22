@@ -19,12 +19,12 @@ public class ShiftParticipantConfiguration : IEntityTypeConfiguration<ShiftParti
     public void Configure(EntityTypeBuilder<ShiftParticipant> builder)
     {
         // Keep legacy table name for compatibility with existing schema.// Table name
-        builder.ToTable("EinsatzParticipants");
+        builder.ToTable("shift_participants");
 
         // Composite primary key ensures:
         // - a user can participate only once per shift
         // - no surrogate key is required for the join entity
-        builder.HasKey(p => new { p.EinsatzId, p.UserId });
+        builder.HasKey(p => new { p.ShiftId, p.UserId });
 
         // Persist role enum as int to keep database representation stable.
         builder.Property(p => p.Role)
@@ -32,10 +32,10 @@ public class ShiftParticipantConfiguration : IEntityTypeConfiguration<ShiftParti
             .IsRequired();
 
         // Indexes to support common access patterns.
-        builder.HasIndex(p => p.EinsatzId);
+        builder.HasIndex(p => p.ShiftId);
         builder.HasIndex(p => p.UserId);
 
         // Optimizes queries such as "find the lead of a given shift".
-        builder.HasIndex(p => new { p.EinsatzId, p.Role });
+        builder.HasIndex(p => new { p.ShiftId, p.Role });
     }
 }

@@ -91,7 +91,7 @@ public sealed class ShiftRepository : IShiftRepository, IShiftDetailsQuery
         // 2) Participants
         var participants = await _db.EinsatzParticipants
             .AsNoTracking()
-            .Where(p => p.EinsatzId == einsatz.Id)
+            .Where(p => p.ShiftId == einsatz.Id)
             .Select(p => new ShiftParticipantDto
             {
                 UserId = p.UserId,

@@ -68,7 +68,7 @@ public class ShiftsSmokeController : ControllerBase
         var participants = request.Participants
             .Select(p => new ShiftParticipant
             {
-                EinsatzId = einsatzId,
+                ShiftId = einsatzId,
                 UserId = p.UserId,
                 Role = p.Role
             })
@@ -140,7 +140,7 @@ public class ShiftsSmokeController : ControllerBase
 
         var participants = await _db.EinsatzParticipants
             .AsNoTracking()
-            .Where(p => p.EinsatzId == einsatz.Id)
+            .Where(p => p.ShiftId == einsatz.Id)
             .Select(p => new ShiftParticipantDetailsSmokeDto
             {
                 UserId = p.UserId,
@@ -178,7 +178,7 @@ public class ShiftsSmokeController : ControllerBase
             return BadRequest(new { error = "Only Draft can be published." });
 
         var leaderCount = await _db.EinsatzParticipants
-            .Where(p => p.EinsatzId == id && p.Role == ShiftRole.Leader)
+            .Where(p => p.ShiftId == id && p.Role == ShiftRole.Leader)
             .CountAsync();
 
         if (leaderCount != 1)
@@ -207,7 +207,7 @@ public class ShiftsSmokeController : ControllerBase
             return Unauthorized(new { error = "User id claim missing." });
 
         var isLeader = await _db.EinsatzParticipants.AnyAsync(p =>
-            p.EinsatzId == id && p.UserId == userId && p.Role == ShiftRole.Leader);
+            p.ShiftId == id && p.UserId == userId && p.Role == ShiftRole.Leader);
 
         if (!isLeader)
             return Forbid();
@@ -227,7 +227,7 @@ public class ShiftsSmokeController : ControllerBase
     {
         var participants = await _db.EinsatzParticipants
             .AsNoTracking()
-            .Where(p => p.EinsatzId == einsatzId)
+            .Where(p => p.ShiftId == einsatzId)
             .Select(p => new { p.UserId, p.Role })
             .ToListAsync();
 
