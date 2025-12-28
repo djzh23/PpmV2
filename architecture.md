@@ -41,7 +41,9 @@ Die Anwendung besteht aus folgenden logischen Schichten:
 
 Die folgende Grafik zeigt diese Abhängigkeitsbeziehungen auf Projektebene:
 
-*(Diagramm: Layered Architecture / Abhängigkeitsdiagramm)*
+## Schichtenarchitektur
+
+![Layered Architecture Diagram](./diagrams/layered-architecture.png)
 
 ---
 
@@ -64,7 +66,7 @@ Die API „nutzt“ Infrastructure nicht fachlich, sondern **verdrahtet sie ledi
 
 Der folgende Ablauf zeigt einen typischen **Write-Use-Case** (Command) anhand der Erstellung eines Shifts:
 
-*(Diagramm: Sequence Diagram – Controller → Handler → Repository → Datenbank)*
+![Sequence Diagram – Create Shift](./diagrams/sequence-shift-create.png)
 
 ### Ablaufbeschreibung
 
