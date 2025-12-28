@@ -23,6 +23,10 @@ Trennung der Verantwortlichkeiten sicherzustellen:
 - **Domain** – Geschäftslogik, Entitäten, Repository-Abstraktionen  
 - **Infrastructure** – EF Core, ASP.NET Core Identity, technische Implementierungen  
 
+### Dokumentation
+
+- Architektur: [docs/architecture.md](src/docs/architecture.md)
+
 ---
 
 ## ✨ Kernfunktionen
