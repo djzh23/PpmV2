@@ -27,17 +27,18 @@ public class AuthServiceTests
         _authService = new AuthService(_userManagerMock.Object, _userProfileRepoMock.Object, _jwtTokenServiceMock.Object);
     }
 
+
     // Helper method for creating the UserManager mock (encapsulates the complexity)
     private Mock<UserManager<AppUser>> CreateMockUserManager()
     {
         var store = new Mock<IUserStore<AppUser>>();
         return new Mock<UserManager<AppUser>>(
             store.Object,
-            null, // IOptions<IdentityOptions>
+            null!, // IOptions<IdentityOptions>
             new PasswordHasher<AppUser>(),
             Array.Empty<IUserValidator<AppUser>>(),
             Array.Empty<IPasswordValidator<AppUser>>(),
-            null, null, null, null
+            null!, null!, null!, null! // Null-forgiving Operator verwenden
         );
     }
 
@@ -103,7 +104,6 @@ public class AuthServiceTests
         Assert.Equal(UserRole.Honorarkraft, createdUser.Role);
         Assert.Equal(createdUser.Id, result.UserId);
     }
-
 
 
     [Theory]

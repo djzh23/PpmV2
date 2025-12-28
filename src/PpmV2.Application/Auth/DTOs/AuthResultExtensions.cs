@@ -6,7 +6,7 @@ public static class AuthResultExtensions
 {
     public static AppError ToAppError(this AuthResult result)
     {
-        // Nur für Fail-Fälle sinnvoll
+        // Useful for fail cases
         var message = result.ErrorMessage ?? "Authentication error.";
 
         return result.ErrorCode switch

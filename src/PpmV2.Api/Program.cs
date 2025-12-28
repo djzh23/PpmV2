@@ -34,9 +34,9 @@ builder.Services.AddEndpointsApiExplorer();
 
 
 // --- Persistence setup ---
-// For local development we use SQL Server.
-// For "Docker" environment we currently use an in-memory database to simplify container startup.
-// Note: In-memory DB is not persistent and should be used only for development/testing scenarios.
+// Database provider priority: PostgreSQL (primary) > SQL Server (legacy fallback) > In-Memory (dev/testing only)
+// PostgreSQL is the primary database. SQL Server migrations are archived and excluded from compilation.
+// In-memory database is only used as a fallback for local development without database configuration.
 
 
 if (!string.IsNullOrWhiteSpace(postgresConn))

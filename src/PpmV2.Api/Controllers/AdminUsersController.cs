@@ -1,10 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using PpmV2.Application.Admin.DTOs;
 using PpmV2.Application.Admin.Interfaces;
 using PpmV2.Domain.Users;
-using PpmV2.Infrastructure.Identity;
 
 namespace PpmV2.Api.Controllers;
 

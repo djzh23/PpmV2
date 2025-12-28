@@ -17,6 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\src\PpmV2.Api\PpmV2.Api.csproj" />
     <ProjectReference Include="..\src\PpmV2.Infrastructure\PpmV2.Infrastructure.csproj" />
   </ItemGroup>
 
