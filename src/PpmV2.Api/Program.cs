@@ -2,53 +2,60 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using PpmV2.Api.Middleware;
 using PpmV2.Application.Admin.Interfaces;
-using PpmV2.Application.Auth;
+using PpmV2.Application.Auth.Interfaces;
+using PpmV2.Application.Locations.Interfaces;
+using PpmV2.Application.Shifts.Commands.Creation;
+using PpmV2.Application.Shifts.Interfaces;
+using PpmV2.Application.Shifts.Queries.GetShiftDetails;
+using PpmV2.Application.Users.Interfaces;
 using PpmV2.Domain.Users;
-using PpmV2.Domain.Users.Abstractions;
 using PpmV2.Infrastructure.Admin.Seeding;
 using PpmV2.Infrastructure.Admin.Services;
 using PpmV2.Infrastructure.Auth;
 using PpmV2.Infrastructure.Identity;
 using PpmV2.Infrastructure.Persistence;
-using PpmV2.Infrastructure.Persistence.Users;
+using PpmV2.Infrastructure.Persistence.Queries;
+using PpmV2.Infrastructure.Persistence.Repositories;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 var environment = builder.Environment.EnvironmentName;
 
+var postgresConn = builder.Configuration.GetConnectionString("PostgresConnection");
+var sqlServerConn = builder.Configuration.GetConnectionString("DefaultConnection");
 
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+
+// --- API setup (controllers + OpenAPI) ---
 builder.Services.AddOpenApi();
-
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
 
-// Add DbContext 
-//builder.Services.AddDbContext<AppDbContext>(options =>
-//{
-//    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
-//});
+// --- Persistence setup ---
+// Database provider priority: PostgreSQL (primary) > SQL Server (legacy fallback) > In-Memory (dev/testing only)
+// PostgreSQL is the primary database. SQL Server migrations are archived and excluded from compilation.
+// In-memory database is only used as a fallback for local development without database configuration.
 
-if (environment == "Docker")
+
+if (!string.IsNullOrWhiteSpace(postgresConn))
 {
-    builder.Services.AddDbContext<AppDbContext>(options =>
-    {
-        options.UseInMemoryDatabase("PpmV2DockerDb");
-
-    });
+    builder.Services.AddDbContext<AppDbContext>(o => o.UseNpgsql(postgresConn));
+}
+else if (!string.IsNullOrWhiteSpace(sqlServerConn))
+{
+    builder.Services.AddDbContext<AppDbContext>(o => o.UseSqlServer(sqlServerConn));
 }
 else
 {
-    builder.Services.AddDbContext<AppDbContext>(options =>
-    {
-        options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
-    });
+    // fallback only for local Scenarios
+    builder.Services.AddDbContext<AppDbContext>(o => o.UseInMemoryDatabase("PpmV2DevDb"));
 }
 
-// Add Identity 
+// --- Identity setup ---
+// Identity manages credentials, password hashing and user store.
+// AppUser/AppRole are the domain-specific Identity models persisted via EF Core. 
 builder.Services
     .AddIdentity<AppUser, AppRole>(options =>
     {
@@ -60,7 +67,8 @@ builder.Services
 
 
 
-// JWT Authentication
+// --- JWT authentication setup ---
+// Token validation parameters are aligned with JwtTokenService configuration (Issuer/Audience/Key).
 var jwtSection = builder.Configuration.GetSection("Jwt");
 var jwtKey = jwtSection["Key"] ?? throw new InvalidOperationException("JWT Key is missing (Jwt:Key).");
 
@@ -83,34 +91,76 @@ builder.Services.AddAuthentication(options =>
         ValidIssuer = jwtSection["Issuer"],
         ValidAudience = jwtSection["Audience"],
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+        // Small clock skew to reduce token expiry issues caused by time drift.
         ClockSkew = TimeSpan.FromMinutes(1)
     };
 });
 
 
+// --- Authorization policies ---
+// Policies are used by controllers/endpoints to express access rules in a central, testable way.
 builder.Services.AddAuthorization(options =>
 {
+    // Admin endpoints
     options.AddPolicy("AdminOnly", policy =>
         policy.RequireRole(UserRole.Admin.ToString()));
+
+    // Shift creation is restricted to Coordinator and Festmitarbeiter
+    // (legacy name "EinsatzCreate" kept for now; can be renamed to "ShiftCreate" later).
+    options.AddPolicy("EinsatzCreate", policy =>
+        policy.RequireRole(
+            UserRole.Coordinator.ToString(),
+            UserRole.Festmitarbeiter.ToString()
+        ));
 });
 
 
-// AuthService
+// --- Dependency injection registrations ---
+// Infrastructure implementations for application ports.
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
-// UserProfile Repository
+
 builder.Services.AddScoped<IUserProfileRepository, UserProfileRepository>();
-
 builder.Services.AddScoped<IAdminUserService, AdminUserService>();
+builder.Services.AddScoped<ILocationQueryService, LocationQueryService>();
 
+// Shifts: repository serves as write-port and details query for v1.
+builder.Services.AddScoped<IShiftRepository, ShiftRepository>();
+builder.Services.AddScoped<IShiftDetailsQuery, ShiftRepository>();
+
+// Application handlers (use cases)
+builder.Services.AddScoped<CreateShiftHandler>();
+builder.Services.AddScoped<GetShiftDetailsHandler>();
+
+
+// --- CORS ---
+// Config-driven allowlist for frontend origins (e.g. local dev UI, hosted preview URL).
+var allowedOrigins = builder.Configuration
+    .GetSection("Cors:AllowedOrigins")
+    .Get<string[]>() ?? Array.Empty<string>();
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("FrontendCors", policy =>
+        policy.WithOrigins(allowedOrigins)
+              .AllowAnyHeader()
+              .AllowAnyMethod());
+});
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// --- HTTP pipeline ---
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi(); // generiert /openapi/v1.json
+    // Generates /openapi/v1.json
+    app.MapOpenApi();
 }
+
+app.UseCors("FrontendCors");
+
+// Central exception -> ProblemDetails mapping (currently handles ValidationException).
+app.UseMiddleware<ExceptionHandlingMiddleware>();
+
 app.UseHttpsRedirection();
 
 app.UseAuthentication();
@@ -120,18 +170,30 @@ app.MapControllers();
 
 
 
-// Seed Admin user (idempotent)
+// --- Seeding ---
+// Seeds an initial admin user based on configuration (idempotent).
+// Intended for controlled environments only (AdminSeed:Enabled).
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
 
+    var roleManager = services.GetRequiredService<RoleManager<AppRole>>();
     var userManager = services.GetRequiredService<UserManager<AppUser>>();
-    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var dbContext = services.GetRequiredService<AppDbContext>();
     var configuration = services.GetRequiredService<IConfiguration>();
-    var logger = services.GetRequiredService<ILoggerFactory>().CreateLogger("AdminSeeder");
+    var loggerFactory = services.GetRequiredService<ILoggerFactory>();
 
-    await AdminSeeder.SeedAsync(userManager, dbContext, configuration, logger);
+    if (dbContext.Database.IsRelational())
+    {
+        await dbContext.Database.MigrateAsync();
+    }
+
+    await RolesSeeder.SeedAsync(roleManager, loggerFactory.CreateLogger("RolesSeeder"));
+    await AdminSeeder.SeedAsync(userManager, dbContext, configuration, loggerFactory.CreateLogger("AdminSeeder"));
+    await DemoUsersSeeder.SeedAsync(userManager, dbContext, configuration, loggerFactory.CreateLogger("DemoUsersSeeder"));
+    await LocationsSeeder.SeedAsync(dbContext, configuration, loggerFactory.CreateLogger("LocationsSeeder"));
 }
+
 
 
 app.Run();

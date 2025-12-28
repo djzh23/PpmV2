@@ -1,16 +1,21 @@
 ﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using PpmV2.Application.Admin.DTOs;
 using PpmV2.Application.Admin.Interfaces;
 using PpmV2.Domain.Users;
-using PpmV2.Infrastructure.Identity;
 
 namespace PpmV2.Api.Controllers;
 
 [ApiController]
 [Route("api/admin/users")]
 [Authorize(Policy = "AdminOnly")]
+/// <summary>
+/// Admin-only endpoints to manage user approval and role assignment.
+/// </summary>
+/// <remarks>
+/// This controller is protected by the "AdminOnly" authorization policy.
+/// It delegates all business logic to the application service (IAdminUserService).
+/// </remarks>
 public class AdminUsersController : ControllerBase
 {
 
@@ -50,7 +55,8 @@ public class AdminUsersController : ControllerBase
 
         if (!result.Success)
         {
-            // string.Equals(result.ErrorMessage, "User not found.", StringComparison.OrdinalIgnoreCase)
+            // Note: This controller currently returns simple message responses.
+            // TODO : Unifying error responses with ProblemDetails (ApiProblem) in a future cleanup PR.
             if (result.ErrorMessage == "User not found")
                 return NotFound(new { message = result.ErrorMessage });
             
