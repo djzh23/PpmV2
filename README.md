@@ -6,8 +6,7 @@
 [![Docker](https://img.shields.io/badge/Docker-0db7ed?style=flat-square&logo=docker&logoColor=white)](https://www.docker.com/)
 [![xUnit](https://img.shields.io/badge/xUnit-5C2D91?style=flat-square&logo=.net&logoColor=white)](https://xunit.net/)
 
-REST-API zur Verwaltung von Einsätzen, Standorten und rollenbasierter Benutzerverwaltung.
-Entwickelt als vollständige Neuentwicklung des [Originals in Laravel](https://github.com/djzh23/apiproject) — migriert auf .NET 10 nach Clean-Architecture-Prinzipien.
+REST-API zur Verwaltung von Einsätzen, Standorten und rollenbasierter Benutzerverwaltung — entwickelt als vollständige Neuentwicklung von [apiproject (Laravel v1)](https://github.com/djzh23/apiproject), migriert auf .NET 10 nach Clean-Architecture-Prinzipien.
 
 > **Frontend:** [PpmV2-Next-Client](https://github.com/djzh23/PpmV2-Next-Client) — Next.js 16 + shadcn/ui
 
@@ -18,7 +17,7 @@ Entwickelt als vollständige Neuentwicklung des [Originals in Laravel](https://g
 **Authentifizierung — Login (POST /api/auth/login)**
 ![Login 200 OK](src/docs/screenshots/auth-login-200.png)
 
-**Admin — Genehmigte Benutzer abrufen (GET /api/admin/users/approved)**
+**Admin — Genehmigte Benutzer (GET /api/admin/users/approved)**
 ![Admin genehmigte Benutzer](src/docs/screenshots/admin-users-approved-200.png)
 
 **Einsatz — Einzelner Einsatz per ID (GET /api/einsaetze/:id)**
@@ -29,57 +28,6 @@ Entwickelt als vollständige Neuentwicklung des [Originals in Laravel](https://g
 | Fehlende E-Mail | Fehlendes Passwort |
 |---|---|
 | ![Fehlende E-Mail](src/docs/screenshots/auth-login-400-missing-email.png) | ![Fehlendes Passwort](src/docs/screenshots/auth-login-400-missing-password.png) |
-
----
-
-## Architektur
-
-```mermaid
-graph TD
-    API["PpmV2.Api<br/>REST endpoints · Controllers · DI root"]
-    APP["PpmV2.Application<br/>Use Cases · DTOs · Interfaces"]
-    INFRA["PpmV2.Infrastructure<br/>EF Core · ASP.NET Identity · DB context"]
-    DOMAIN["PpmV2.Domain<br/>Entities · Business rules · No external deps"]
-    TESTS["PpmV2.Tests<br/>xUnit · Moq"]
-
-    API   -->|depends on| APP
-    API   -.->|wires up via DI| INFRA
-    APP   -->|depends on| DOMAIN
-    INFRA -->|implements interfaces from| APP
-    INFRA -->|depends on| DOMAIN
-    TESTS -.->|tests| APP
-    TESTS -.->|tests| DOMAIN
-
-    style API    fill:#EEEDFE,stroke:#534AB7,color:#26215C
-    style APP    fill:#E1F5EE,stroke:#0F6E56,color:#04342C
-    style INFRA  fill:#E1F5EE,stroke:#0F6E56,color:#04342C
-    style DOMAIN fill:#FAECE7,stroke:#993C1D,color:#4A1B0C
-    style TESTS  fill:#EAF3DE,stroke:#3B6D11,color:#173404
-```
-
-```mermaid
-sequenceDiagram
-    participant C  as HTTP Client
-    participant A  as PpmV2.Api
-    participant AP as PpmV2.Application
-    participant D  as PpmV2.Domain
-    participant I  as PpmV2.Infrastructure
-    participant DB as PostgreSQL
-
-    C  ->> A  : HTTP Request
-    A  ->> AP : invoke Use Case Handler
-    AP ->> D  : validate / apply business rules
-    D  -->> AP: entities returned
-    AP ->> I  : IRepository call (interface only)
-    Note right of AP: Infrastructure resolved at runtime via DI.<br/>Application has no direct reference to EF Core.
-    I  ->> DB : SQL query via EF Core
-    DB -->> I  : result set
-    I  -->> AP : mapped domain entities
-    AP -->> A  : return DTO / result
-    A  -->> C  : HTTP Response (200 / 4xx / 5xx)
-```
-
-> Vollständige Architekturdokumentation: [`src/docs/architecture.md`](src/docs/architecture.md)
 
 ---
 
@@ -109,7 +57,7 @@ PpmV2/
 │   └── docs/
 │       ├── architecture.md
 │       ├── screenshots/      # Insomnia-API-Screenshots
-│       └── diagrams/         # Architekturdiagramme
+│       └── diagrams/         # Architekturdiagramme (draw.io PNG)
 ├── PpmV2.Tests/              # xUnit + Moq Unit-Tests
 └── docker-compose.yml        # App + PostgreSQL
 ```
@@ -128,19 +76,12 @@ docker-compose up -d
 
 **Lokale Entwicklung (ohne Docker für die App):**
 ```bash
-# Nur die Datenbank als Container starten
 docker-compose up -d db
-
-# Migrationen anwenden
-dotnet ef database update \
-  --project src/PpmV2.Infrastructure \
-  --startup-project src/PpmV2.Api
-
-# API starten
+dotnet ef database update --project src/PpmV2.Infrastructure --startup-project src/PpmV2.Api
 dotnet run --project src/PpmV2.Api
 ```
 
-**Tests ausführen:**
+**Tests:**
 ```bash
 dotnet test
 ```
@@ -187,13 +128,14 @@ dotnet test
 - [x] Repository-Pattern
 - [x] Docker Compose + PostgreSQL
 - [x] xUnit + Moq Unit-Tests
-- [x] Architekturdokumentation
 - [x] JWT-Authentifizierung
 - [x] Rollenbasierte Zugriffskontrolle (RBAC)
 - [x] Strukturierte Validierungsfehler
 - [ ] Globaler Fehler-Handler (Problem Details RFC 7807)
 - [ ] GitHub Actions CI/CD-Pipeline
 - [ ] Integrationstests
+
+> Architektur, Schichtendiagramme und Request-Flow: [`src/docs/architecture.md`](src/docs/architecture.md)
 
 ---
 
