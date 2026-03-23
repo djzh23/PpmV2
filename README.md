@@ -11,17 +11,20 @@ REST-API zur Verwaltung von Einsätzen, Standorten und rollenbasierter Benutzerv
 ## Screenshots
 
 **Authentifizierung — Login (POST /api/auth/login)**
+![Login 200 OK](src/docs/screenshots/auth-login-200.png)
 
 **Admin — Genehmigte Benutzer abrufen (GET /api/admin/users/approved)**
+![Admin genehmigte Benutzer](src/docs/screenshots/admin-users-approved-200.png)
 
 **Einsatz — Einzelner Einsatz per ID (GET /api/einsaetze/:id)**
+![Einsatz nach ID](src/docs/screenshots/einsatz-get-by-id-200.png.png)
 
 **Negative Tests — Validierungsfehler (400 Bad Request)**
 
 
 | Fehlende E-Mail | Fehlendes Passwort |
 | --------------- | ------------------ |
-|                 |                    |
+| ![Fehlende E-Mail](src/docs/screenshots/auth-login-400-missing-email.png.png) | ![Fehlendes Passwort](src/docs/screenshots/auth-login-400-missing-password.png) |
 
 
 ---
