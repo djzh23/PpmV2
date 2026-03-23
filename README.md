@@ -6,24 +6,27 @@
 [![Docker](https://img.shields.io/badge/Docker-0db7ed?style=flat-square&logo=docker&logoColor=white)](https://www.docker.com/)
 [![xUnit](https://img.shields.io/badge/xUnit-5C2D91?style=flat-square&logo=.net&logoColor=white)](https://xunit.net/)
 
-REST-API zur Verwaltung von Einsätzen, Standorten und rollenbasierter Benutzerverwaltung — entwickelt als vollständige Neuentwicklung von [apiproject (Laravel v1)](https://github.com/djzh23/apiproject), migriert auf .NET 10 nach Clean-Architecture-Prinzipien.
+REST-API zur Verwaltung von Einsätzen, Standorten und rollenbasierter Benutzerverwaltung, entwickelt als vollständige Neuentwicklung von [apiproject (Laravel v1)](https://github.com/djzh23/apiproject), migriert auf .NET 10 nach Clean-Architecture-Prinzipien.
 
-> **Frontend:** [PpmV2-Next-Client](https://github.com/djzh23/PpmV2-Next-Client) — Next.js 16 + shadcn/ui
+> Architektur, Schichtendiagramme und Request-Flow: [`src/docs/architecture.md`](src/docs/architecture.md)
+
+
+> **Frontend:** [PpmV2-Next-Client](https://github.com/djzh23/PpmV2-Next-Client) : Next.js 16 + shadcn/ui
 
 ---
 
 ## Screenshots
 
-**Authentifizierung — Login (POST /api/auth/login)**
+**Authentifizierung : Login (POST /api/auth/login)**
 ![Login 200 OK](src/docs/screenshots/auth-login-200.png)
 
-**Admin — Genehmigte Benutzer (GET /api/admin/users/approved)**
+**Admin : Genehmigte Benutzer (GET /api/admin/users/approved)**
 ![Admin genehmigte Benutzer](src/docs/screenshots/admin-users-approved-200.png)
 
-**Einsatz — Einzelner Einsatz per ID (GET /api/einsaetze/:id)**
+**Einsatz : Einzelner Einsatz per ID (GET /api/einsaetze/:id)**
 ![Einsatz nach ID](src/docs/screenshots/einsatz-get-by-id-200.png)
 
-**Negative Tests — Validierungsfehler (400 Bad Request)**
+**Negative Tests : Validierungsfehler (400 Bad Request)**
 
 | Fehlende E-Mail | Fehlendes Passwort |
 |---|---|
@@ -38,7 +41,7 @@ REST-API zur Verwaltung von Einsätzen, Standorten und rollenbasierter Benutzerv
 | Authentifizierung | Registrierung, Login, JWT-Token |
 | Benutzergenehmigung | Admin genehmigt oder lehnt ausstehende Benutzer ab |
 | Rollenverwaltung | Admin weist Rollen zu (Admin, Koordinator, Leader, Honorarkraft) |
-| Einsätze | Erstellen, Veröffentlichen, Abrufen per ID — mit Standort- und Teilnehmerdaten |
+| Einsätze | Erstellen, Veröffentlichen, Abrufen per ID, mit Standort- und Teilnehmerdaten |
 | Standorte | CRUD für Einsatzstandorte |
 | Validierung | Strukturierte `400 Bad Request`-Antworten mit feldbezogenen Fehlermeldungen |
 | Negative Tests | Vollständige Negativtestsuite in Insomnia (fehlende Felder, falsches Passwort, nicht genehmigter Benutzer) |
@@ -52,7 +55,7 @@ PpmV2/
 ├── src/
 │   ├── PpmV2.Api/            # Controller, Middleware, Program.cs (DI-Root)
 │   ├── PpmV2.Application/    # Use Cases, DTOs, IRepository-Schnittstellen
-│   ├── PpmV2.Domain/         # Entitäten, Geschäftsregeln — keine ext. Abhängigkeiten
+│   ├── PpmV2.Domain/         # Entitäten, Geschäftsregeln, keine ext. Abhängigkeiten
 │   ├── PpmV2.Infrastructure/ # EF Core, ASP.NET Identity, Repository-Implementierungen
 │   └── docs/
 │       ├── architecture.md
@@ -135,7 +138,6 @@ dotnet test
 - [ ] GitHub Actions CI/CD-Pipeline
 - [ ] Integrationstests
 
-> Architektur, Schichtendiagramme und Request-Flow: [`src/docs/architecture.md`](src/docs/architecture.md)
 
 ---
 
