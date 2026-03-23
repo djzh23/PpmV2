@@ -1,10 +1,11 @@
 # PpmV2 – Modernes .NET Backend mit Clean Architecture
 
-![.NET](https://img.shields.io/badge/.NET-10-blueviolet)
-![Architecture](https://img.shields.io/badge/Clean%20Architecture-On-5B2E90)
-![Tests](https://img.shields.io/badge/Unit%20Tests-xUnit%20%2B%20Moq-brightgreen)
-![License](https://img.shields.io/badge/License-MIT-green)
-![Status](https://img.shields.io/badge/Status-Active%20Development-yellow)
+[![.NET](https://img.shields.io/badge/.NET_10-5C2D91?style=for-the-badge&logo=.net&logoColor=white)](https://dotnet.microsoft.com/)
+[![ASP.NET Core](https://img.shields.io/badge/ASP.NET_Core-5C2D91?style=for-the-badge&logo=.net&logoColor=white)](https://docs.microsoft.com/en-us/aspnet/core/)
+[![Entity Framework Core](https://img.shields.io/badge/Entity_Framework_Core-512BD4?style=for-the-badge&logo=entityframework&logoColor=white)](https://docs.microsoft.com/en-us/ef/core/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Docker](https://img.shields.io/badge/Docker-0db7ed?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
+[![xUnit](https://img.shields.io/badge/xUnit-5C2D91?style=for-the-badge&logo=.net&logoColor=white)](https://xunit.net/)
 
 Dieses Projekt ist die Neuentwicklung eines Backends, das ursprünglich mit Laravel entwickelt war.  
 Der Wechsel von Laravel zu **.NET 10** dient dem Ziel, ein produktionsreifes Backend nach  
@@ -18,10 +19,10 @@ und zukünftige Erweiterbarkeit maximiert.
 Das Projekt folgt konsequent den Prinzipien der **Clean Architecture**, um eine klare  
 Trennung der Verantwortlichkeiten sicherzustellen:
 
-- **Api** – Präsentationsschicht; definiert REST-Endpunkte  
-- **Application** – Anwendungslogik, Use Cases, DTOs  
-- **Domain** – Geschäftslogik, Entitäten, Repository-Abstraktionen  
-- **Infrastructure** – EF Core, ASP.NET Core Identity, technische Implementierungen  
+- **Api :** Präsentationsschicht; definiert REST-Endpunkte  
+- **Application :** Anwendungslogik, Use Cases, DTOs  
+- **Domain :** Geschäftslogik, Entitäten, Repository-Abstraktionen  
+- **Infrastructure :** EF Core, ASP.NET Core Identity, technische Implementierungen  
 
 ### Dokumentation
 
@@ -30,18 +31,22 @@ Trennung der Verantwortlichkeiten sicherzustellen:
 ---
 
 ## ✨ Kernfunktionen
-
-- **Sichere Authentifizierung**  
-  Benutzerregistrierung und Login via ASP.NET Core Identity
-
-- **Saubere Domänenstruktur**  
-  Separates `UserProfile`-Modell entkoppelt fachliche Logik vom Identity-System
-
-- **Flexible Datenhaltung**  
-  Repository-Pattern zur Entkopplung von EF Core und zur Verbesserung der Testbarkeit
-
-- **Qualitätssicherung**  
-  Unit Tests mit **xUnit** und **Moq**
+ 
+### Authentifizierung & Identität
+- **ASP.NET Core Identity :**  sichere Benutzerregistrierung und Login
+- **Sauberes Domänenmodell :**  `UserProfile`-Entität entkoppelt fachliche Logik vom Identity-System
+- **JWT :** zustandslose API-Authentifizierung *(in Entwicklung)*
+ 
+### Architektur-Features
+- **Repository Pattern :** EF Core von der Geschäftslogik entkoppelt, bessere Testbarkeit
+- **Dependency Injection :** durchgehend in allen Schichten
+- **Unit Tests :** xUnit + Moq für Kernlogik
+ 
+### Infrastruktur
+- **PostgreSQL** als primäre Datenbank
+- **Docker Compose :** vollständig containerisiert, ein Befehl zum Starten
+- **EF Core Migrations :** versionierte Datenbankschema-Verwaltung
+- **Identity Seeding :** automatische Initialdaten beim ersten Start
 
 ---
 
