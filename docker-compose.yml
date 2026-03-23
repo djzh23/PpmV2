@@ -10,8 +10,35 @@ services:
       POSTGRES_PASSWORD: ppmv2_password
     ports:
       - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ppmv2 -d ppmv2"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
     volumes:
       - ppmv2_pgdata:/var/lib/postgresql/data
+
+  api:
+    build:
+      context: .
+      dockerfile: src/PpmV2.Api/Dockerfile
+    container_name: ppmv2-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Docker
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__PostgresConnection: Host=postgres;Port=5432;Database=ppmv2;Username=ppmv2;Password=ppmv2_password
+      Jwt__Issuer: PpmV2
+      Jwt__Audience: PpmV2
+      Jwt__Key: PpmV2_Dev_SecretKey_ThisMustBeAtLeast32Chars!
+      Cors__AllowedOrigins__0: http://localhost:3000
+      Cors__AllowedOrigins__1: http://localhost:5173
+      Cors__AllowedOrigins__2: http://127.0.0.1:3000
+      Cors__AllowedOrigins__3: http://127.0.0.1:5173
+    ports:
+      - "8080:8080"
 
 volumes:
   ppmv2_pgdata:

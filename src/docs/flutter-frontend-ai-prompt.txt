@@ -1,0 +1,194 @@
+You are a senior Flutter engineer. Build a production-ready Flutter app (Dart) for the PpmV2 backend described below.
+
+GOAL
+- Create a clean, minimal, responsive Flutter app that works on:
+  - Android/iOS
+  - Web (important for local dev with backend CORS rules)
+- Use a scalable architecture and strongly typed API layer.
+
+TECH STACK REQUIREMENTS
+- Flutter (stable), Dart null safety
+- State management: Riverpod (preferred) or Bloc
+- HTTP client: Dio (preferred) or http
+- JSON models: json_serializable + freezed (preferred) or equivalent typed approach
+- Routing: go_router
+- Secure token storage:
+  - mobile: flutter_secure_storage
+  - web: fallback to in-memory or local storage with clear warning/comments
+
+BACKEND OVERVIEW
+- Base URLs by environment:
+  - Local HTTP: http://localhost:5105
+  - Local HTTPS: https://localhost:7129
+  - Docker: http://localhost:8080
+  - Render production: https://ppmv2-hbb4.onrender.com
+
+- Auth:
+  - POST /api/auth/register
+  - POST /api/auth/login
+  - Login response returns JWT token (no refresh token flow)
+  - JWT expires after 2 hours
+  - Protected routes require: Authorization: Bearer <token>
+
+- User approval rule:
+  - Login can return 403 if account is not approved.
+  - Treat this as a business-state error and show a clear message, not a generic crash.
+
+API CONTRACT (MUST IMPLEMENT)
+
+1) POST /api/auth/register
+Request JSON:
+{
+  "firstname": "string",
+  "lastname": "string",
+  "email": "user@example.com",
+  "password": "string (min 6)"
+}
+Success 200:
+{
+  "userId": "guid",
+  "email": "user@example.com"
+}
+
+2) POST /api/auth/login
+Request JSON:
+{
+  "email": "user@example.com",
+  "password": "string"
+}
+Success 200:
+{
+  "token": "jwt",
+  "userId": "guid",
+  "email": "user@example.com"
+}
+
+3) GET /api/locations  (auth required)
+Success 200:
+[
+  {
+    "id": "guid",
+    "name": "string",
+    "district": "string"
+  }
+]
+
+4) POST /api/einsaetze  (auth required, role: Coordinator or Festmitarbeiter)
+Request JSON:
+{
+  "title": "string",
+  "description": "string|null",
+  "startAtUtc": "2026-04-01T20:00:00Z",
+  "endAtUtc": "2026-04-02T06:00:00Z",
+  "locationId": "guid",
+  "participants": [
+    { "userId": "guid", "role": "Leader" }
+  ]
+}
+Response 200: ShiftDetailsDto
+Expected fields:
+- id (guid)
+- title (string)
+- description (string|null)
+- startAtUtc (datetime UTC)
+- endAtUtc (datetime UTC|null)
+- status (enum: Draft, Planned, Active, Completed, Cancelled)
+- location: { id, name, district, address }
+- participants: [{ userId, role }]
+- readiness (string)
+- missingRequirements (string[])
+
+5) GET /api/einsaetze/{id} (auth required)
+Response 200: ShiftDetailsDto (same shape as above)
+
+6) Admin endpoints (auth required, Admin role)
+- GET /api/admin/users/pending
+- GET /api/admin/users/approved
+- GET /api/admin/users/rejected
+- PUT /api/admin/users/approve/{id}
+- PUT /api/admin/users/reject/{id}
+- PUT /api/admin/users/{id}/role
+  Body:
+  { "role": "Coordinator" }
+
+DOMAIN ENUMS TO MODEL IN DART
+- UserRole: Admin, Coordinator, Festmitarbeiter, Honorarkraft
+- UserStatus: Pending, Approved, Rejected, Deactivated
+- ShiftStatus: Draft, Planned, Active, Completed, Cancelled
+- ShiftRole: Leader, Member, Support
+
+ERROR HANDLING CONTRACT
+- Backend returns ProblemDetails style errors for many failures:
+  - status (int)
+  - title (error code, e.g. AUTH_INVALID_CREDENTIALS, AUTH_NOT_APPROVED)
+  - detail (human-readable message)
+  - optional errors object for field-level validation
+- Implement centralized API error mapping:
+  - 400/422 => validation messages
+  - 401 => unauthorized/session invalid
+  - 403 => forbidden or not approved
+  - 409 => conflict (e.g. user already exists)
+  - network timeout/offline => dedicated UI state
+
+DATE/TIME RULES
+- Backend expects UTC timestamps.
+- Always send ISO-8601 UTC strings with Z suffix.
+- Convert to local timezone only for display.
+
+CORS + WEB NOTES
+- For Flutter web local dev, use one of allowed origins:
+  - http://localhost:3000
+  - http://localhost:5173
+  - http://127.0.0.1:3000
+  - http://127.0.0.1:5173
+- If serving Flutter web on another port/origin, backend CORS must be updated.
+
+APP FEATURES TO BUILD
+1. Environment configuration
+  - Compile-time flavors: local, docker, production
+  - Single ApiConfig that switches base URL by flavor
+
+2. Auth module
+  - Register page
+  - Login page
+  - Persist token
+  - Auto-restore session on app start
+  - Logout
+
+3. Locations + shifts module
+  - Load locations list
+  - Create shift form
+  - Shift details page by ID
+  - Show readiness + missing requirements from API
+
+4. Admin module
+  - Pending/approved/rejected user tabs
+  - Approve/reject actions
+  - Change role action
+
+5. Cross-cutting quality
+  - Loading/empty/error states on every async screen
+  - Form validation
+  - Retry actions on failed requests
+  - Basic widget tests for auth flow and one integration-ish API test with mocked client
+
+DELIVERABLE FORMAT
+- Generate complete Flutter project structure.
+- Include:
+  - lib/core (config, networking, error handling)
+  - lib/features/auth
+  - lib/features/locations
+  - lib/features/shifts
+  - lib/features/admin
+  - lib/shared/widgets
+- Provide concise setup steps and run commands.
+- Provide a short section: "How to switch backend between localhost / docker / production".
+
+SEED ACCOUNTS FOR TESTING (DEFAULT)
+- Password for all: Pass123$
+- Admin: admin@test.com
+- Coordinator: koord1@test.com, koord2@test.com, koord3@test.com
+- Festmitarbeiter: fest1@test.com, fest2@test.com, fest3@test.com
+- Honorarkraft: hon1@test.com, hon2@test.com, hon3@test.com
+
+Now generate the Flutter app with the above constraints.

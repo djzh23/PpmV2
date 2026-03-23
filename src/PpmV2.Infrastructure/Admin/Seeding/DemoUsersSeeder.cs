@@ -56,7 +56,11 @@ public static class DemoUsersSeeder
                 {
                     UserName = u.Email,
                     Email = u.Email,
-                    EmailConfirmed = true
+                    EmailConfirmed = true,
+                    Status = UserStatus.Approved,
+                    Role = u.Role,
+                    IsActive = true,
+                    IsProfileCompleted = true
                 };
 
                 var createResult = await userManager.CreateAsync(user, password);
@@ -75,10 +79,41 @@ public static class DemoUsersSeeder
             }
             else
             {
-                // optional: ensure confirmed
+                var changed = false;
+
+                // Ensure invariants for existing seeded users as well.
                 if (!existing.EmailConfirmed)
                 {
                     existing.EmailConfirmed = true;
+                    changed = true;
+                }
+
+                if (existing.Status != UserStatus.Approved)
+                {
+                    existing.Status = UserStatus.Approved;
+                    changed = true;
+                }
+
+                if (existing.Role != u.Role)
+                {
+                    existing.Role = u.Role;
+                    changed = true;
+                }
+
+                if (!existing.IsActive)
+                {
+                    existing.IsActive = true;
+                    changed = true;
+                }
+
+                if (!existing.IsProfileCompleted)
+                {
+                    existing.IsProfileCompleted = true;
+                    changed = true;
+                }
+
+                if (changed)
+                {
                     var updateResult = await userManager.UpdateAsync(existing);
                     if (!updateResult.Succeeded)
                     {
