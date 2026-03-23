@@ -1,95 +1,173 @@
-﻿## Architekturüberblick
+﻿# Architekturüberblick — PpmV2
 
-Das Backend von **PpmV2 (v2)** folgt einer **Clean-Architecture-nahen, schichtenbasierten Struktur**.  
-Ziel ist eine klare Trennung von Verantwortlichkeiten, hohe Testbarkeit sowie eine langfristig wartbare und erweiterbare Codebasis.
-
-Die Architektur unterscheidet strikt zwischen **fachlicher Logik**, **Anwendungslogik**, **technischer Implementierung** und **Hosting/Presentation**.
+PpmV2 ist ein REST-Backend nach **Clean Architecture**. Das bedeutet: Geschäftsregeln und Datenbankzugriffe sind strikt getrennt. Ein HTTP-Request läuft immer denselben Weg — von oben nach unten durch vier Schichten — und kehrt als Response zurück. Keine Schicht springt dabei eine andere über, und die innerste Schicht (Domain) kennt weder die Datenbank noch das Web-Framework.
 
 ---
 
-## Schichten und Abhängigkeiten
+## Feature-Übersicht und Datenfluss
 
-Die Anwendung besteht aus folgenden logischen Schichten:
+Das folgende Diagramm zeigt, **welche Funktion in welcher Schicht liegt** und **wie ein Request von oben nach unten fließt**.
 
-- **Domain (`PpmV2.Domain`)**  
-  Enthält die fachlichen Kernmodelle (Entities, Enums) und Domänenregeln.  
-  Diese Schicht ist vollständig unabhängig und hat **keine Abhängigkeiten** zu anderen Schichten.
+```mermaid
+graph TD
+    CLIENT["HTTP Client"]
 
-- **Application (`PpmV2.Application`)**  
-  Enthält die Use Cases der Anwendung (Commands, Queries, Handler), DTOs sowie Schnittstellen (Ports).  
-  Die Application-Schicht kennt die Domain, aber **keine Infrastrukturdetails**.
+    subgraph API ["PpmV2.Api — Controller-Schicht"]
+      direction LR
+      SHIFT_C["Shifts + Locations
+      CRUD · publish · GET by ID"]
+      AUTH_C["Auth
+      POST /register · POST /login"]
+      ADMIN_C["Admin
+      GET/PUT users · approve · role · reject"]
+    end
 
-- **Infrastructure (`PpmV2.Infrastructure`)**  
-  Enthält technische Implementierungen wie EF Core, Repositories, Query-Services, Auth/JWT, Identity und Seeding.  
-  Diese Schicht implementiert die in der Application definierten Interfaces und kennt sowohl **Application als auch Domain**.
+    subgraph APP ["PpmV2.Application — Use Cases"]
+      direction LR
+      SHIFT_U["Shifts Use Cases
+      CreateShift · PublishShift · GetShiftDetails"]
+      AUTH_U["Auth Use Cases
+      RegisterCommand · LoginQuery · IAuthService"]
+      ADMIN_U["Admin Use Cases
+      ApproveUser · AssignRole · GetPending · GetApproved"]
+    end
 
-- **API (`PpmV2.Api`)**  
-  Stellt die HTTP-Schnittstelle bereit (Controller, Middleware, Konfiguration).  
-  Die API enthält **keine Business-Logik** und fungiert als **Composition Root** für Dependency Injection.
+    subgraph DOMAIN ["PpmV2.Domain — Entitäten"]
+      direction LR
+      SHIFT_D["Shift Domain
+      Shift · ShiftParticipant · ShiftRole · ShiftStatus"]
+      LOC_D["Location Domain
+      Location · name · district · address"]
+      USER_D["User Domain
+      UserProfile · UserRole · UserStatus: Pending / Active"]
+    end
 
-- **Tests (`PpmV2.Tests`)**  
-  Enthält Unit Tests für Application-Use-Cases und Domain-Logik, unabhängig von Infrastruktur und Web.
+    subgraph INFRA ["PpmV2.Infrastructure"]
+      direction LR
+      PERSIST["Persistence
+      AppDbContext · Repositories · EF Configurations · Queries"]
+      AUTH_I["Auth + Identity
+      JwtService · ASP.NET Identity · Migrations: Postgres + SqlServer"]
+    end
 
-### Abhängigkeitsregeln
+    DB[("PostgreSQL (Docker)")]
 
-- Domain → keine Abhängigkeiten  
-- Application → Domain  
-- Infrastructure → Application + Domain  
-- API → Application (fachlich)  
-- API → Infrastructure **nur für DI/Wiring (Composition Root)**  
-- Tests → Application + Domain  
+    CLIENT -->|"HTTP Request"| AUTH_C
+    CLIENT -->|"HTTP Request"| ADMIN_C
+    CLIENT -->|"HTTP Request"| SHIFT_C
 
-Die folgende Grafik zeigt diese Abhängigkeitsbeziehungen auf Projektebene:
+    SHIFT_C -->|"delegiert an Use Case"| SHIFT_U
+    AUTH_C  -->|"delegiert an Use Case"| AUTH_U
+    ADMIN_C -->|"delegiert an Use Case"| ADMIN_U
 
-## Schichtenarchitektur
+    SHIFT_U -->|"wendet Geschäftsregeln an"| SHIFT_D
+    SHIFT_U -->|"wendet Geschäftsregeln an"| LOC_D
+    AUTH_U  -->|"wendet Geschäftsregeln an"| USER_D
+    ADMIN_U -->|"wendet Geschäftsregeln an"| USER_D
 
-![Layered Architecture Diagram](./diagrams/layered-architecture.png)
+    SHIFT_D -->|"IRepository call (interface only)"| PERSIST
+    LOC_D   -->|"IRepository call (interface only)"| PERSIST
+    USER_D  -->|"IRepository call (interface only)"| PERSIST
+    USER_D  -->|"Identity / JWT"| AUTH_I
+
+    PERSIST -->|"SQL-Abfrage via EF Core"| DB
+    AUTH_I  -->|"SQL-Abfrage via EF Core"| DB
+
+    style CLIENT fill:#E6F1FB,stroke:#185FA5,color:#042C53
+    style DB     fill:#E6F1FB,stroke:#185FA5,color:#042C53
+```
+
+**Leseanleitung:**
+- **Controller-Schicht (Api):** Nimmt HTTP-Requests entgegen und leitet sie weiter — enthält keine Geschäftslogik.
+- **Use Cases (Application):** Orchestrieren den Ablauf. Kennen die Domain, aber nicht die Datenbank. Greifen nur über Interfaces auf Persistenz zu.
+- **Entitäten (Domain):** Reine Fachlogik — `Shift`, `UserProfile`, `Location`. Kein EF Core, kein HTTP, keine externen Pakete.
+- **Infrastructure:** Implementiert die Interfaces aus Application. Hier liegt EF Core, Identity und JWT — alles was mit externen Systemen spricht.
+- **Gestrichelte Pfeile (`IRepository call`):** Der Use Case ruft nur das Interface auf. Welche konkrete Klasse dahintersteckt, entscheidet der DI-Container in `Program.cs` zur Laufzeit.
 
 ---
 
-## Composition Root (API)
+## Projektabhängigkeiten
 
-Die API-Schicht ist bewusst der einzige Ort, an dem **konkrete Implementierungen an Interfaces gebunden werden**:
+Dieses Diagramm zeigt die **compile-time Abhängigkeiten** zwischen den .NET-Projekten — also welches Projekt welches andere referenziert.
 
-- Repositories
-- Query-Services
-- Auth-Services
-- DbContext
-- Security (JWT, Identity)
+```mermaid
+graph TD
+    API["PpmV2.Api
+    AuthController · AdminUsersController
+    ShiftsController · LocationsController · Middleware"]
 
-Dadurch bleibt die Application-Schicht unabhängig und testbar.  
-Die API „nutzt“ Infrastructure nicht fachlich, sondern **verdrahtet sie lediglich**.
+    APP["PpmV2.Application
+    Auth · Admin · Shifts · Locations
+    Commands · Queries · Handlers · DTOs
+    IShiftRepository · IAuthService"]
+
+    INFRA["PpmV2.Infrastructure
+    Auth · Identity · Admin · Persistence
+    AppDbContext · Repositories · Queries
+    Migrations: Postgres + SqlServer"]
+
+    DOMAIN["PpmV2.Domain
+    Shifts: Shift · ShiftParticipant · ShiftRole · ShiftStatus
+    Users: UserProfile · UserRole · UserStatus
+    Locations: Location — keine externen Abhängigkeiten"]
+
+    TESTS["PpmV2.Tests
+    Admin · Auth · Shifts
+    xUnit · Moq · Mvc.Testing"]
+
+    API   -->|"ProjectReference"| APP
+    API   -->|"ProjectReference (DI-Root)"| INFRA
+    APP   -->|"ProjectReference"| DOMAIN
+    INFRA -->|"implementiert Interfaces aus"| APP
+    INFRA -->|"ProjectReference"| DOMAIN
+    TESTS -->|"ProjectReference"| API
+    TESTS -->|"ProjectReference"| INFRA
+
+    style API    fill:#EEEDFE,stroke:#534AB7,color:#26215C
+    style APP    fill:#E1F5EE,stroke:#0F6E56,color:#04342C
+    style INFRA  fill:#E1F5EE,stroke:#0F6E56,color:#04342C
+    style DOMAIN fill:#FAECE7,stroke:#993C1D,color:#4A1B0C
+    style TESTS  fill:#EAF3DE,stroke:#3B6D11,color:#173404
+```
+
+**Wichtige Regel:** Abhängigkeiten zeigen immer **nach innen** — `Api → Application → Domain`. Die Pfeilrichtung zeigt an, wer wen kennt. `Domain` kennt niemanden — deshalb hat es keine ausgehenden Pfeile.
+
+`PpmV2.Infrastructure` zeigt einen Pfeil zu `PpmV2.Application` (`implementiert Interfaces aus`), weil Infrastructure die dort definierten Repository-Interfaces konkret umsetzt — aber Application weiß davon nichts.
 
 ---
 
-## Request Flow – Beispiel: Shift-Erstellung (Command)
+## Request Flow — Schritt für Schritt
 
-Der folgende Ablauf zeigt einen typischen **Write-Use-Case** (Command) anhand der Erstellung eines Shifts:
+```mermaid
+sequenceDiagram
+    participant C  as HTTP Client
+    participant A  as PpmV2.Api
+    participant AP as PpmV2.Application
+    participant D  as PpmV2.Domain
+    participant I  as PpmV2.Infrastructure
+    participant DB as PostgreSQL
 
-![Sequence Diagram – Create Shift](./diagrams/sequence-shift-create.png)
-
-### Ablaufbeschreibung
-
-1. Ein **Controller** empfängt einen HTTP-Request und delegiert an einen Use Case.
-2. Der **Handler** in der Application-Schicht verarbeitet den Command.
-3. Der Handler greift ausschließlich über ein **Interface (`IShiftRepository`)** auf Persistenzfunktionen zu.
-4. Die konkrete Implementierung (`ShiftRepository`) wird zur Laufzeit per **Dependency Injection** bereitgestellt.
-5. Die **Infrastructure-Schicht** führt Datenbankzugriffe über EF Core aus.
-6. Der Handler steuert Validierungen, Erzeugung der Domain-Entitäten und den Transaktionsabschluss.
-7. Das Ergebnis (z. B. `ShiftId`) wird an den Controller zurückgegeben.
-
-Wichtig:  
-Der Handler kennt **nur das Interface**, nicht die konkrete Implementierung oder die Datenbank.
+    C  ->> A  : GET /api/einsaetze/:id
+    A  ->> AP : invoke GetShiftDetails Handler
+    AP ->> D  : validate / apply business rules
+    D  -->> AP: Shift entity returned
+    AP ->> I  : IShiftRepository.GetByIdAsync()
+    Note right of AP: Infrastructure resolved at runtime via DI.<br/>Application has no direct reference to EF Core.
+    I  ->> DB : SELECT via EF Core
+    DB -->> I  : result set
+    I  -->> AP : mapped Shift entity
+    AP -->> A  : ShiftDetailsDto
+    A  -->> C  : HTTP 200 OK
+```
 
 ---
 
 ## Zusammenfassung
 
-Diese Architektur stellt sicher, dass:
-
-- fachliche Logik von technischen Details entkoppelt ist
-- Änderungen an Datenbank, Auth oder Infrastruktur keine Auswirkungen auf Use Cases haben
-- Unit Tests ohne Webserver oder Datenbank möglich sind
-- das System schrittweise erweitert (z. B. weitere Query-Modelle, andere Persistenz) werden kann
-
-Die gewählte Struktur ist bewusst **pragmatisch**, orientiert sich aber klar an den Prinzipien der Clean Architecture und an bewährten .NET-Backend-Patterns.
+| Schicht | Verantwortung | Externe Pakete |
+|---|---|---|
+| `PpmV2.Domain` | Entitäten und Geschäftsregeln | keine |
+| `PpmV2.Application` | Use Cases, Interfaces, DTOs | keine |
+| `PpmV2.Infrastructure` | EF Core, Identity, JWT, Migrations | EF Core · Npgsql · Identity |
+| `PpmV2.Api` | Controller, Middleware, DI-Root | JwtBearer · OpenApi |
+| `PpmV2.Tests` | Unit- und Integrationstests | xUnit · Moq · Mvc.Testing |
