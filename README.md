@@ -11,7 +11,7 @@ REST-API zur Verwaltung von Einsätzen, Standorten und rollenbasierter Benutzerv
 > Architektur, Schichtendiagramme und Request-Flow: [`src/docs/architecture.md`](src/docs/architecture.md)
 
 
-> **Frontend:** [PpmV2-Next-Client](https://github.com/djzh23/PpmV2-Next-Client) : Next.js 16 + shadcn/ui
+> **Frontend:** [PpmV2-Next-Client](https://github.com/djzh23/ppmv2-next-frontend) : Next.js 16 + shadcn/ui
 
 ---
 
