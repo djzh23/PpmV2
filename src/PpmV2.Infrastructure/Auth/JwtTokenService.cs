@@ -21,10 +21,12 @@ namespace PpmV2.Infrastructure.Auth;
 public class JwtTokenService : IJwtTokenService
 {
     private readonly IConfiguration _config;
+    private readonly TimeProvider _timeProvider;
 
-    public JwtTokenService(IConfiguration config)
+    public JwtTokenService(IConfiguration config, TimeProvider timeProvider)
     {
         _config = config;
+        _timeProvider = timeProvider;
     }
 
     /// <summary>
@@ -60,7 +62,7 @@ public class JwtTokenService : IJwtTokenService
             issuer: issuer,
             audience: audience,
             claims: tokenClaims,
-            expires: DateTime.UtcNow.AddHours(2),
+            expires: _timeProvider.GetUtcNow().UtcDateTime.AddHours(2),
             signingCredentials: creds
         );
 

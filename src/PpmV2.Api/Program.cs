@@ -132,6 +132,8 @@ builder.Services.AddAuthorization(options =>
 
 
 // --- Dependency injection registrations ---
+builder.Services.AddSingleton(TimeProvider.System);
+
 // Infrastructure implementations for application ports.
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -223,6 +225,7 @@ using (var scope = app.Services.CreateScope())
     var dbContext = services.GetRequiredService<AppDbContext>();
     var configuration = services.GetRequiredService<IConfiguration>();
     var loggerFactory = services.GetRequiredService<ILoggerFactory>();
+    var timeProvider = services.GetRequiredService<TimeProvider>();
 
     if (dbContext.Database.IsRelational())
     {
@@ -230,9 +233,9 @@ using (var scope = app.Services.CreateScope())
     }
 
     await RolesSeeder.SeedAsync(roleManager, loggerFactory.CreateLogger("RolesSeeder"));
-    await AdminSeeder.SeedAsync(userManager, dbContext, configuration, loggerFactory.CreateLogger("AdminSeeder"));
+    await AdminSeeder.SeedAsync(userManager, dbContext, configuration, timeProvider, loggerFactory.CreateLogger("AdminSeeder"));
     await DemoUsersSeeder.SeedAsync(userManager, dbContext, configuration, loggerFactory.CreateLogger("DemoUsersSeeder"));
-    await LocationsSeeder.SeedAsync(dbContext, configuration, loggerFactory.CreateLogger("LocationsSeeder"));
+    await LocationsSeeder.SeedAsync(dbContext, configuration, loggerFactory.CreateLogger("LocationsSeeder"), timeProvider);
 }
 
 

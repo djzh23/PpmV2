@@ -10,7 +10,8 @@ public static class LocationsSeeder
     public static async Task SeedAsync(
         AppDbContext dbContext,
         IConfiguration configuration,
-        ILogger logger)
+        ILogger logger,
+        TimeProvider timeProvider)
     {
         var enabled = bool.Parse(configuration["Seeding:Locations:Enabled"] ?? "false");
         if (!enabled)
@@ -27,19 +28,21 @@ public static class LocationsSeeder
             return;
         }
 
+        var now = timeProvider.GetUtcNow().UtcDateTime;
+
         dbContext.Locations.AddRange(
-            new() { Name = "Wohnanlage Elbpark", District = "Altona", Address = "Elbchaussee 212", IsActive = true, Notes = null },
-            new() { Name = "Sozialunterkunft Nordlicht", District = "Eimsbüttel", Address = "Lutterothstraße 98", IsActive = true, Notes = null },
-            new() { Name = "Wohnzentrum Süderelbe", District = "Harburg", Address = "Rehrstieg 45", IsActive = true, Notes = null },
-            new() { Name = "Unterkunft Am Stadtdeich", District = "Rothenburgsort", Address = "Billwerder Neuer Deich 23", IsActive = true, Notes = null },
-            new() { Name = "Wohnhaus Sonnenhof", District = "Wandsbek", Address = "Friedrich-Ebert-Damm 112", IsActive = true, Notes = null },
-            new() { Name = "Erstaufnahme Elbbrücken", District = "Hammerbrook", Address = "Spaldingstraße 160", IsActive = true, Notes = "Zentrale Erstaufnahme" },
-            new() { Name = "Gemeinschaftsunterkunft Moorfleet", District = "Moorfleet", Address = "Moorfleeter Hauptdeich 75", IsActive = true, Notes = null },
-            new() { Name = "UPH Alsterblick", District = "Winterhude", Address = "Barmbeker Straße 87", IsActive = true, Notes = "Unbegleitete Minderjährige" },
-            new() { Name = "Wohnanlage Grünau", District = "Bergedorf", Address = "Lohbrügger Landstraße 210", IsActive = true, Notes = null },
-            new() { Name = "Unterkunft Am Gleisfeld", District = "Billstedt", Address = "Manshardtstraße 64", IsActive = true, Notes = null },
-            new() { Name = "Wohnunterkunft Hafenrand", District = "Veddel", Address = "Peutestraße 42", IsActive = true, Notes = null },
-            new() { Name = "Wohnprojekt Regenbogenhof", District = "Wilhelmsburg", Address = "Krieterstraße 18", IsActive = true, Notes = null }
+            new() { Name = "Wohnanlage Elbpark", District = "Altona", Address = "Elbchaussee 212", IsActive = true, Notes = null, CreatedAt = now },
+            new() { Name = "Sozialunterkunft Nordlicht", District = "Eimsbüttel", Address = "Lutterothstraße 98", IsActive = true, Notes = null, CreatedAt = now },
+            new() { Name = "Wohnzentrum Süderelbe", District = "Harburg", Address = "Rehrstieg 45", IsActive = true, Notes = null, CreatedAt = now },
+            new() { Name = "Unterkunft Am Stadtdeich", District = "Rothenburgsort", Address = "Billwerder Neuer Deich 23", IsActive = true, Notes = null, CreatedAt = now },
+            new() { Name = "Wohnhaus Sonnenhof", District = "Wandsbek", Address = "Friedrich-Ebert-Damm 112", IsActive = true, Notes = null, CreatedAt = now },
+            new() { Name = "Erstaufnahme Elbbrücken", District = "Hammerbrook", Address = "Spaldingstraße 160", IsActive = true, Notes = "Zentrale Erstaufnahme", CreatedAt = now },
+            new() { Name = "Gemeinschaftsunterkunft Moorfleet", District = "Moorfleet", Address = "Moorfleeter Hauptdeich 75", IsActive = true, Notes = null, CreatedAt = now },
+            new() { Name = "UPH Alsterblick", District = "Winterhude", Address = "Barmbeker Straße 87", IsActive = true, Notes = "Unbegleitete Minderjährige", CreatedAt = now },
+            new() { Name = "Wohnanlage Grünau", District = "Bergedorf", Address = "Lohbrügger Landstraße 210", IsActive = true, Notes = null, CreatedAt = now },
+            new() { Name = "Unterkunft Am Gleisfeld", District = "Billstedt", Address = "Manshardtstraße 64", IsActive = true, Notes = null, CreatedAt = now },
+            new() { Name = "Wohnunterkunft Hafenrand", District = "Veddel", Address = "Peutestraße 42", IsActive = true, Notes = null, CreatedAt = now },
+            new() { Name = "Wohnprojekt Regenbogenhof", District = "Wilhelmsburg", Address = "Krieterstraße 18", IsActive = true, Notes = null, CreatedAt = now }
         );
 
 

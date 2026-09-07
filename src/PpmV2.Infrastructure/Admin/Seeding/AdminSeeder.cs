@@ -26,8 +26,10 @@ public static class AdminSeeder
         UserManager<AppUser> userManager,
         AppDbContext dbContext,
         IConfiguration configuration,
+        TimeProvider timeProvider,
         ILogger logger)
     {
+        var now = timeProvider.GetUtcNow().UtcDateTime;
         var section = configuration.GetSection("AdminSeed");
 
         // Config flag to avoid accidental seeding in unwanted environments.
@@ -105,8 +107,8 @@ public static class AdminSeeder
                 Lastname = "Administrator",
                 Email = user.Email!,
                 IsActive = true,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                CreatedAt = now,
+                UpdatedAt = now
             });
 
             await dbContext.SaveChangesAsync();
@@ -135,7 +137,7 @@ public static class AdminSeeder
 
             if (pChanged)
             {
-                profile.UpdatedAt = DateTime.UtcNow;
+                profile.UpdatedAt = now;
                 await dbContext.SaveChangesAsync();
                 logger.LogInformation("AdminSeeder: updated admin profile for {Email}", email);
             }

@@ -25,14 +25,18 @@ public sealed class AuthService : IAuthService
     private readonly IUserProfileRepository _userProfileRepository;
     private readonly IJwtTokenService _jwtTokenService;
 
+    private readonly TimeProvider _timeProvider;
+
     public AuthService(
         UserManager<AppUser> userManager,
         IUserProfileRepository userProfileRepository,
-        IJwtTokenService jwtTokenService)
+        IJwtTokenService jwtTokenService,
+        TimeProvider timeProvider)
     {
         _userManager = userManager;
         _userProfileRepository = userProfileRepository;
         _jwtTokenService = jwtTokenService;
+        _timeProvider = timeProvider;
     }
 
     /// <summary>
@@ -190,7 +194,8 @@ public sealed class AuthService : IAuthService
             Email = request.Email,
             Firstname = request.Firstname.Trim(),
             Lastname = request.Lastname.Trim(),
-            IsActive = true
+            IsActive = true,
+            CreatedAt = _timeProvider.GetUtcNow().UtcDateTime
         };
 
         await _userProfileRepository.AddAsync(profile);

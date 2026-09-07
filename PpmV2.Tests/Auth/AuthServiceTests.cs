@@ -24,7 +24,7 @@ public class AuthServiceTests
         _userProfileRepoMock = new Mock<IUserProfileRepository>();
         _jwtTokenServiceMock = new Mock<IJwtTokenService>();
 
-        _authService = new AuthService(_userManagerMock.Object, _userProfileRepoMock.Object, _jwtTokenServiceMock.Object);
+        _authService = new AuthService(_userManagerMock.Object, _userProfileRepoMock.Object, _jwtTokenServiceMock.Object, TimeProvider.System);
     }
 
 
