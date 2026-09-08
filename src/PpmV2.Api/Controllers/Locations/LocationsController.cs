@@ -17,9 +17,9 @@ public class LocationsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetActiveLocations()
+    public async Task<IActionResult> GetActiveLocations(CancellationToken ct)
     {
-        var locations = await _service.GetActiveAsync();
+        var locations = await _service.GetActiveAsync(ct);
         return Ok(locations);
     }
 }

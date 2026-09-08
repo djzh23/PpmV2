@@ -27,7 +27,6 @@ public sealed class ExceptionHandlingMiddleware
         {
             // Validation errors are returned as ProblemDetails (application/problem+json).
             context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-            context.Response.ContentType = "application/problem+json";
 
             var problem = new ProblemDetails
             {
@@ -40,7 +39,8 @@ public sealed class ExceptionHandlingMiddleware
             if (ex.Errors.Count > 0)
                 problem.Extensions["errors"] = ex.Errors;
 
-            await context.Response.WriteAsJsonAsync(problem);
+            // Pass the content type explicitly so WriteAsJsonAsync does not override it with application/json.
+            await context.Response.WriteAsJsonAsync(problem, options: null, contentType: "application/problem+json");
         }
     }
 }

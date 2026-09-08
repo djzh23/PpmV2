@@ -22,9 +22,9 @@ public class AuthController : ControllerBase
     public AuthController(IAuthService auth) => _auth = auth;
 
     [HttpPost("register")]
-    public async Task<IActionResult> Register([FromBody] RegisterRequest request)
+    public async Task<IActionResult> Register([FromBody] RegisterRequest request, CancellationToken ct)
     {
-        var result = await _auth.RegisterAsync(request);
+        var result = await _auth.RegisterAsync(request, ct);
 
         // Standardized error response mapping (ProblemDetails) for failed auth results.
         if (!result.Success)
@@ -39,9 +39,9 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("login")]
-    public async Task<IActionResult> Login([FromBody] LoginRequest request)
+    public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken ct)
     {
-        var result = await _auth.LoginAsync(request);
+        var result = await _auth.LoginAsync(request, ct);
 
         if (!result.Success)
             return ApiProblem.From(result.ToAppError(), HttpContext);

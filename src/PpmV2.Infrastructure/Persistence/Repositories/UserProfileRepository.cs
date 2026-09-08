@@ -22,33 +22,36 @@ public class UserProfileRepository : IUserProfileRepository
     }
 
     /// <summary>Returns a profile by its domain identifier.</summary>
-    public async Task<UserProfile?> GetByIdAsync(Guid id)
+    public async Task<UserProfile?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
         return await _dbContext.UserProfiles
-            .FirstOrDefaultAsync(u => u.Id == id);
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == id, ct);
     }
 
     /// <summary>Returns a profile by the associated Identity user id (1:1 relationship).</summary>
-    public async Task<UserProfile?> GetByIdentityUserIdAsync(Guid identityUserId)
+    public async Task<UserProfile?> GetByIdentityUserIdAsync(Guid identityUserId, CancellationToken ct = default)
     {
         return await _dbContext.UserProfiles
-            .FirstOrDefaultAsync(u => u.IdentityUserId == identityUserId);
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.IdentityUserId == identityUserId, ct);
     }
 
-    public async Task<UserProfile?> GetByEmailAsync(string email)
+    public async Task<UserProfile?> GetByEmailAsync(string email, CancellationToken ct = default)
     {
         return await _dbContext.UserProfiles
-            .FirstOrDefaultAsync(u => u.Email == email);
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Email == email, ct);
     }
 
-    public async Task AddAsync(UserProfile profile)
+    public async Task AddAsync(UserProfile profile, CancellationToken ct = default)
     {
-        await _dbContext.UserProfiles.AddAsync(profile);
+        await _dbContext.UserProfiles.AddAsync(profile, ct);
     }
 
-    public async Task SaveChangesAsync()
+    public async Task SaveChangesAsync(CancellationToken ct = default)
     {
-        await _dbContext.SaveChangesAsync();
+        await _dbContext.SaveChangesAsync(ct);
     }
 
 

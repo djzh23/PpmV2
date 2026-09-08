@@ -1,7 +1,10 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PpmV2.Api.Common;
 using PpmV2.Application.Admin.DTOs;
 using PpmV2.Application.Admin.Interfaces;
+using PpmV2.Application.Common.Errors;
+using PpmV2.Application.Common.Results;
 using PpmV2.Domain.Users;
 
 namespace PpmV2.Api.Controllers;
@@ -18,7 +21,6 @@ namespace PpmV2.Api.Controllers;
 /// </remarks>
 public class AdminUsersController : ControllerBase
 {
-
     private readonly IAdminUserService _adminUserService;
 
     public AdminUsersController(IAdminUserService adminUserService)
@@ -26,84 +28,66 @@ public class AdminUsersController : ControllerBase
         _adminUserService = adminUserService;
     }
 
-
     [HttpGet("pending")]
-    public async Task<IActionResult> GetPendingUsers()
+    public async Task<IActionResult> GetPendingUsers(CancellationToken ct)
     {
-        var pendingUsers = await _adminUserService.GetPendingUsersAsync();
+        var pendingUsers = await _adminUserService.GetPendingUsersAsync(ct);
         return Ok(pendingUsers);
     }
 
     [HttpGet("approved")]
-    public async Task<IActionResult> GetApprovedUsers()
+    public async Task<IActionResult> GetApprovedUsers(CancellationToken ct)
     {
-        var approvedUsers = await _adminUserService.GetApprovedUsersAsync();
+        var approvedUsers = await _adminUserService.GetApprovedUsersAsync(ct);
         return Ok(approvedUsers);
     }
 
     [HttpGet("rejected")]
-    public async Task<IActionResult> GetRejectedUsers()
+    public async Task<IActionResult> GetRejectedUsers(CancellationToken ct)
     {
-        var rejectedUsers = await _adminUserService.GetRejectedUsersAsync();
+        var rejectedUsers = await _adminUserService.GetRejectedUsersAsync(ct);
         return Ok(rejectedUsers);
     }
 
     [HttpPut("approve/{id:guid}")]
-    public async Task<IActionResult> Approve(Guid id)
+    public async Task<IActionResult> Approve(Guid id, CancellationToken ct)
     {
-        var result = await _adminUserService.ApproveUserAsync(id);
+        var result = await _adminUserService.ApproveUserAsync(id, ct);
 
         if (!result.Success)
-        {
-            // Note: This controller currently returns simple message responses.
-            // TODO : Unifying error responses with ProblemDetails (ApiProblem) in a future cleanup PR.
-            if (result.ErrorMessage == "User not found")
-                return NotFound(new { message = result.ErrorMessage });
-            
-            return BadRequest(new { message = result.ErrorMessage });
-        }
+            return ApiProblem.From(result.ToAppError(), HttpContext);
+
         return Ok(new { message = "User approved successfully." });
     }
 
     [HttpPut("reject/{id:guid}")]
-    public async Task<IActionResult> Reject(Guid id)
+    public async Task<IActionResult> Reject(Guid id, CancellationToken ct)
     {
-        var result = await _adminUserService.RejectUserAsync(id);
+        var result = await _adminUserService.RejectUserAsync(id, ct);
 
-        if(!result.Success)
-        {
-            if (result.ErrorMessage == "User not found")
-                return NotFound(new { message = result.ErrorMessage });
-            
-            return BadRequest(new { message = result.ErrorMessage });
-        }
+        if (!result.Success)
+            return ApiProblem.From(result.ToAppError(), HttpContext);
 
         return Ok(new { message = "User rejected successfully." });
     }
 
-    
     [HttpPut("{id:guid}/role")]
     public async Task<IActionResult> SetUserRole(
-    Guid id,
-    [FromBody] SetUserRoleRequest request)
+        Guid id,
+        [FromBody] SetUserRoleRequest request,
+        CancellationToken ct)
     {
         if (request == null || string.IsNullOrWhiteSpace(request.Role))
-            return BadRequest(new { message = "Role is required" });
+            return ApiProblem.From(new AppError("VALIDATION_ERROR", "Role is required.", 400), HttpContext);
 
         if (!Enum.TryParse<UserRole>(request.Role, ignoreCase: true, out var role))
-            return BadRequest(new { message = "Invalid role value" });
+            return ApiProblem.From(new AppError("VALIDATION_ERROR", $"Invalid role value: '{request.Role}'.", 400), HttpContext);
 
-        var result = await _adminUserService.SetUserRoleAsync(id, role);
+        var result = await _adminUserService.SetUserRoleAsync(id, role, ct);
 
         if (!result.Success)
-        {
-            if (result.ErrorMessage == "User not found")
-                return NotFound(new { message = result.ErrorMessage });
-
-            return BadRequest(new { message = result.ErrorMessage });
-        }
+            return ApiProblem.From(result.ToAppError(), HttpContext);
 
         return Ok(new { message = "User role updated successfully." });
     }
-
 }

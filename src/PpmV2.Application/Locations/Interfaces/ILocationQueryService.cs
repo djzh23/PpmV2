@@ -4,7 +4,5 @@ namespace PpmV2.Application.Locations.Interfaces;
 
 public interface ILocationQueryService
 {
-    Task<IReadOnlyList<LocationListItemDto>> GetActiveAsync();
-
-
+    Task<IReadOnlyList<LocationListItemDto>> GetActiveAsync(CancellationToken ct = default);
 }

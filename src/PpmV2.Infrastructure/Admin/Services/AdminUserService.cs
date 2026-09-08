@@ -31,7 +31,7 @@ public class AdminUserService : IAdminUserService
     }
 
     /// <summary>Returns users whose accounts are pending approval.</summary>
-    public Task<List<UserAdminListDto>> GetPendingUsersAsync() => GetUsersByStatusAsync(UserStatus.Pending);
+    public Task<List<UserAdminListDto>> GetPendingUsersAsync(CancellationToken ct = default) => GetUsersByStatusAsync(UserStatus.Pending, ct);
 
     /// <summary>
     /// Approves a user account (Pending -> Approved).
@@ -39,8 +39,8 @@ public class AdminUserService : IAdminUserService
     /// <remarks>
     /// If the user is already approved, the operation is idempotent and returns success.
     /// </remarks>
-    public async Task<ServiceResult> ApproveUserAsync(Guid userId) {
-        
+    public async Task<ServiceResult> ApproveUserAsync(Guid userId, CancellationToken ct = default) {
+
         var user = await _userManager.FindByIdAsync(userId.ToString());
 
         if(user == null)
@@ -72,8 +72,8 @@ public class AdminUserService : IAdminUserService
     /// <remarks>
     /// If the user is already rejected, the operation is idempotent and returns success.
     /// </remarks>
-    public async Task<ServiceResult> RejectUserAsync(Guid userId) { 
-    
+    public async Task<ServiceResult> RejectUserAsync(Guid userId, CancellationToken ct = default) {
+
         var user = await _userManager.FindByIdAsync(userId.ToString());
         if(user == null)
         {
@@ -95,11 +95,11 @@ public class AdminUserService : IAdminUserService
         return ServiceResult.Ok();
     }
 
-    public Task<List<UserAdminListDto>> GetApprovedUsersAsync() => GetUsersByStatusAsync(UserStatus.Approved);
+    public Task<List<UserAdminListDto>> GetApprovedUsersAsync(CancellationToken ct = default) => GetUsersByStatusAsync(UserStatus.Approved, ct);
 
-    public Task<List<UserAdminListDto>> GetRejectedUsersAsync() => GetUsersByStatusAsync(UserStatus.Rejected);
+    public Task<List<UserAdminListDto>> GetRejectedUsersAsync(CancellationToken ct = default) => GetUsersByStatusAsync(UserStatus.Rejected, ct);
 
-    private async Task<List<UserAdminListDto>> GetUsersByStatusAsync(UserStatus status)
+    private async Task<List<UserAdminListDto>> GetUsersByStatusAsync(UserStatus status, CancellationToken ct)
     {
         return await _userManager.Users
             .Include(u => u.Profile)
@@ -112,7 +112,7 @@ public class AdminUserService : IAdminUserService
                 u.Status,
                 u.Role
             ))
-            .ToListAsync();
+            .ToListAsync(ct);
     }
 
     /// <summary>
@@ -124,9 +124,9 @@ public class AdminUserService : IAdminUserService
     /// - Admin role cannot be assigned via this API endpoint
     /// - Unknown/invalid roles are rejected
     /// </remarks>
-    public async Task<ServiceResult> SetUserRoleAsync(Guid userId, UserRole role)
+    public async Task<ServiceResult> SetUserRoleAsync(Guid userId, UserRole role, CancellationToken ct = default)
     {
-        var user = await _userManager.Users.FirstOrDefaultAsync(u => u.Id == userId);
+        var user = await _userManager.Users.FirstOrDefaultAsync(u => u.Id == userId, ct);
         if (user == null)
             return ServiceResult.Fail("User not found");
 

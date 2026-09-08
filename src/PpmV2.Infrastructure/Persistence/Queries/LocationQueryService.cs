@@ -26,7 +26,7 @@ public sealed class LocationQueryService : ILocationQueryService
     /// <summary>
     /// Returns all active locations ordered by district and name.
     /// </summary>
-    public async Task<IReadOnlyList<LocationListItemDto>> GetActiveAsync()
+    public async Task<IReadOnlyList<LocationListItemDto>> GetActiveAsync(CancellationToken ct = default)
     {
         return await _db.Locations
             .AsNoTracking() // Read-only query: no change tracking required.
@@ -38,6 +38,6 @@ public sealed class LocationQueryService : ILocationQueryService
                 l.Name,
                 l.District
             ))
-            .ToListAsync();
+            .ToListAsync(ct);
     }
 }
