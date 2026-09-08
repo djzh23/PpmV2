@@ -29,14 +29,14 @@ public sealed class ShiftRepository : IShiftRepository, IShiftDetailsQuery
 
     /// <summary>Checks if a referenced Location exists.</summary>
     public Task<bool> LocationExistsAsync(Guid locationId, CancellationToken ct) =>
-        _db.Locations.AnyAsync(l => l.Id == locationId, ct);
+        _db.Locations.AsNoTracking().AnyAsync(l => l.Id == locationId, ct);
 
     /// <summary>
     /// Counts how many of the given user ids exist in the Identity user store.
     /// Used to validate participant inputs before creating the shift.
     /// </summary>
     public Task<int> CountExistingUsersAsync(IReadOnlyCollection<Guid> userIds, CancellationToken ct) =>
-        _db.Users.CountAsync(u => userIds.Contains(u.Id), ct);
+        _db.Users.AsNoTracking().CountAsync(u => userIds.Contains(u.Id), ct);
 
     /// <summary>
     /// Adds a new Shift aggregate and its participants to the unit of work.

@@ -45,7 +45,7 @@ public sealed class AuthService : IAuthService
     /// <remarks>
     /// Security note: The method returns a generic error for invalid credentials to prevent user enumeration.
     /// </remarks>
-    public async Task<AuthResult> LoginAsync(LoginRequest request)
+    public async Task<AuthResult> LoginAsync(LoginRequest request, CancellationToken ct = default)
     {
         // Service - level validation to keep the service robust even if DTO - level validation is bypassed.
         var validationErrors = new Dictionary<string, string[]>();
@@ -118,7 +118,7 @@ public sealed class AuthService : IAuthService
     /// <remarks>
     /// The newly created account is set to Pending and does not receive a JWT token until approved.
     /// </remarks>
-    public async Task<AuthResult> RegisterAsync(RegisterRequest request)
+    public async Task<AuthResult> RegisterAsync(RegisterRequest request, CancellationToken ct = default)
     {
         // Service-level validation to keep the service robust even if DTO-level validation is bypassed.
         var errors = new Dictionary<string, string[]>();
@@ -198,8 +198,8 @@ public sealed class AuthService : IAuthService
             CreatedAt = _timeProvider.GetUtcNow().UtcDateTime
         };
 
-        await _userProfileRepository.AddAsync(profile);
-        await _userProfileRepository.SaveChangesAsync();
+        await _userProfileRepository.AddAsync(profile, ct);
+        await _userProfileRepository.SaveChangesAsync(ct);
 
         // Token is intentionally null: user must be approved by admin before login is allowed.
         return AuthResult.Ok(

@@ -5,10 +5,10 @@ namespace PpmV2.Application.Users.Interfaces;
 
 public interface IUserProfileRepository
 {
-    Task<UserProfile?> GetByIdAsync(Guid id);
-    Task<UserProfile?> GetByIdentityUserIdAsync(Guid identityUserId);
-    Task<UserProfile?> GetByEmailAsync(string email);
+    Task<UserProfile?> GetByIdAsync(Guid id, CancellationToken ct = default);
+    Task<UserProfile?> GetByIdentityUserIdAsync(Guid identityUserId, CancellationToken ct = default);
+    Task<UserProfile?> GetByEmailAsync(string email, CancellationToken ct = default);
 
-    Task AddAsync(UserProfile profile);
-    Task SaveChangesAsync();
+    Task AddAsync(UserProfile profile, CancellationToken ct = default);
+    Task SaveChangesAsync(CancellationToken ct = default);
 }

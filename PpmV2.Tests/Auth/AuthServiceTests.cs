@@ -70,11 +70,11 @@ public class AuthServiceTests
             .ReturnsAsync(IdentityResult.Success);
 
         _userProfileRepoMock
-            .Setup(r => r.AddAsync(It.IsAny<UserProfile>()))
+            .Setup(r => r.AddAsync(It.IsAny<UserProfile>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         _userProfileRepoMock
-            .Setup(r => r.SaveChangesAsync())
+            .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         // Act
@@ -94,8 +94,8 @@ public class AuthServiceTests
         );
 
         // Assert: Profile repository has been used properly
-        _userProfileRepoMock.Verify(r => r.AddAsync(It.IsAny<UserProfile>()), Times.Once);
-        _userProfileRepoMock.Verify(r => r.SaveChangesAsync(), Times.Once);
+        _userProfileRepoMock.Verify(r => r.AddAsync(It.IsAny<UserProfile>(), It.IsAny<CancellationToken>()), Times.Once);
+        _userProfileRepoMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
 
         // Assert: captured AppUser correctness
         Assert.NotNull(createdUser);
@@ -133,8 +133,8 @@ public class AuthServiceTests
         Assert.Contains("already exists", result.ErrorMessage!, StringComparison.OrdinalIgnoreCase);
 
         _userManagerMock.Verify(m => m.CreateAsync(It.IsAny<AppUser>(), It.IsAny<string>()), Times.Never);
-        _userProfileRepoMock.Verify(r => r.AddAsync(It.IsAny<UserProfile>()), Times.Never);
-        _userProfileRepoMock.Verify(r => r.SaveChangesAsync(), Times.Never);
+        _userProfileRepoMock.Verify(r => r.AddAsync(It.IsAny<UserProfile>(), It.IsAny<CancellationToken>()), Times.Never);
+        _userProfileRepoMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
 }

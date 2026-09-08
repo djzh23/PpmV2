@@ -29,30 +29,30 @@ public class AdminUsersController : ControllerBase
     }
 
     [HttpGet("pending")]
-    public async Task<IActionResult> GetPendingUsers()
+    public async Task<IActionResult> GetPendingUsers(CancellationToken ct)
     {
-        var pendingUsers = await _adminUserService.GetPendingUsersAsync();
+        var pendingUsers = await _adminUserService.GetPendingUsersAsync(ct);
         return Ok(pendingUsers);
     }
 
     [HttpGet("approved")]
-    public async Task<IActionResult> GetApprovedUsers()
+    public async Task<IActionResult> GetApprovedUsers(CancellationToken ct)
     {
-        var approvedUsers = await _adminUserService.GetApprovedUsersAsync();
+        var approvedUsers = await _adminUserService.GetApprovedUsersAsync(ct);
         return Ok(approvedUsers);
     }
 
     [HttpGet("rejected")]
-    public async Task<IActionResult> GetRejectedUsers()
+    public async Task<IActionResult> GetRejectedUsers(CancellationToken ct)
     {
-        var rejectedUsers = await _adminUserService.GetRejectedUsersAsync();
+        var rejectedUsers = await _adminUserService.GetRejectedUsersAsync(ct);
         return Ok(rejectedUsers);
     }
 
     [HttpPut("approve/{id:guid}")]
-    public async Task<IActionResult> Approve(Guid id)
+    public async Task<IActionResult> Approve(Guid id, CancellationToken ct)
     {
-        var result = await _adminUserService.ApproveUserAsync(id);
+        var result = await _adminUserService.ApproveUserAsync(id, ct);
 
         if (!result.Success)
             return ApiProblem.From(result.ToAppError(), HttpContext);
@@ -61,9 +61,9 @@ public class AdminUsersController : ControllerBase
     }
 
     [HttpPut("reject/{id:guid}")]
-    public async Task<IActionResult> Reject(Guid id)
+    public async Task<IActionResult> Reject(Guid id, CancellationToken ct)
     {
-        var result = await _adminUserService.RejectUserAsync(id);
+        var result = await _adminUserService.RejectUserAsync(id, ct);
 
         if (!result.Success)
             return ApiProblem.From(result.ToAppError(), HttpContext);
@@ -74,7 +74,8 @@ public class AdminUsersController : ControllerBase
     [HttpPut("{id:guid}/role")]
     public async Task<IActionResult> SetUserRole(
         Guid id,
-        [FromBody] SetUserRoleRequest request)
+        [FromBody] SetUserRoleRequest request,
+        CancellationToken ct)
     {
         if (request == null || string.IsNullOrWhiteSpace(request.Role))
             return ApiProblem.From(new AppError("VALIDATION_ERROR", "Role is required.", 400), HttpContext);
@@ -82,7 +83,7 @@ public class AdminUsersController : ControllerBase
         if (!Enum.TryParse<UserRole>(request.Role, ignoreCase: true, out var role))
             return ApiProblem.From(new AppError("VALIDATION_ERROR", $"Invalid role value: '{request.Role}'.", 400), HttpContext);
 
-        var result = await _adminUserService.SetUserRoleAsync(id, role);
+        var result = await _adminUserService.SetUserRoleAsync(id, role, ct);
 
         if (!result.Success)
             return ApiProblem.From(result.ToAppError(), HttpContext);
