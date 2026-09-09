@@ -1,7 +1,12 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PpmV2.Application.Shifts.Commands.Approve;
+using PpmV2.Application.Shifts.Commands.Cancel;
 using PpmV2.Application.Shifts.Commands.Creation;
+using PpmV2.Application.Shifts.Commands.Propose;
+using PpmV2.Application.Shifts.Commands.Respond;
 using PpmV2.Application.Shifts.DTOs;
+using PpmV2.Application.Shifts.Interfaces;
 using PpmV2.Application.Shifts.Queries.GetShiftDetails;
 using PpmV2.Application.Shifts.Queries.GetShifts;
 using PpmV2.Domain.Shifts;
@@ -15,12 +20,33 @@ public class ShiftsController : ControllerBase
     private readonly CreateShiftHandler _create;
     private readonly GetShiftDetailsHandler _get;
     private readonly GetShiftsHandler _list;
+    private readonly ProposeShiftTeamHandler _propose;
+    private readonly ApproveShiftHandler _approve;
+    private readonly CancelShiftHandler _cancel;
+    private readonly RespondToShiftHandler _respond;
+    private readonly ICurrentUser _currentUser;
+    private readonly TimeProvider _time;
 
-    public ShiftsController(CreateShiftHandler create, GetShiftDetailsHandler get, GetShiftsHandler list)
+    public ShiftsController(
+        CreateShiftHandler create,
+        GetShiftDetailsHandler get,
+        GetShiftsHandler list,
+        ProposeShiftTeamHandler propose,
+        ApproveShiftHandler approve,
+        CancelShiftHandler cancel,
+        RespondToShiftHandler respond,
+        ICurrentUser currentUser,
+        TimeProvider time)
     {
         _create = create;
         _get = get;
         _list = list;
+        _propose = propose;
+        _approve = approve;
+        _cancel = cancel;
+        _respond = respond;
+        _currentUser = currentUser;
+        _time = time;
     }
 
     [HttpGet]
@@ -33,6 +59,13 @@ public class ShiftsController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("{id:guid}")]
+    [Authorize]
+    public async Task<ActionResult<ShiftDetailsDto>> GetById(Guid id, CancellationToken ct)
+    {
+        var details = await _get.Handle(new GetShiftDetailsQuery(id), ct);
+        return details is null ? NotFound() : Ok(details);
+    }
 
     [HttpPost]
     [Authorize(Policy = "EinsatzCreate")]
@@ -58,14 +91,64 @@ public class ShiftsController : ControllerBase
         return Ok(details);
     }
 
-
-    [HttpGet("{id:guid}")]
-    [Authorize]
-    public async Task<ActionResult<ShiftDetailsDto>> GetById(Guid id, CancellationToken ct)
+    /// <summary>
+    /// Festmitarbeiter proposes their team — transitions the shift from Draft to PendingApproval.
+    /// All other participants are set to Invited and must respond.
+    /// </summary>
+    [HttpPut("{id:guid}/propose")]
+    [Authorize(Policy = "EinsatzCreate")]
+    public async Task<IActionResult> Propose(Guid id, CancellationToken ct)
     {
-        var details = await _get.Handle(new GetShiftDetailsQuery(id), ct);
-        return details is null ? NotFound() : Ok(details);
+        await _propose.Handle(new ProposeShiftTeamCommand(id, _currentUser.UserId), ct);
+        return NoContent();
     }
 
+    /// <summary>
+    /// Coordinator approves a shift (Draft or PendingApproval → Planned).
+    /// </summary>
+    [HttpPut("{id:guid}/approve")]
+    [Authorize(Policy = "ShiftManage")]
+    public async Task<IActionResult> Approve(Guid id, CancellationToken ct)
+    {
+        await _approve.Handle(new ApproveShiftCommand(id), ct);
+        return NoContent();
+    }
 
+    /// <summary>
+    /// Coordinator cancels a shift.
+    /// </summary>
+    [HttpPut("{id:guid}/cancel")]
+    [Authorize(Policy = "ShiftManage")]
+    public async Task<IActionResult> Cancel(Guid id, CancellationToken ct)
+    {
+        await _cancel.Handle(new CancelShiftCommand(id), ct);
+        return NoContent();
+    }
+
+    /// <summary>
+    /// A participant accepts or declines their invitation to a PendingApproval shift.
+    /// </summary>
+    [HttpPut("{id:guid}/participants/{userId:guid}/respond")]
+    [Authorize]
+    public async Task<IActionResult> Respond(
+        Guid id,
+        Guid userId,
+        [FromBody] RespondRequest request,
+        CancellationToken ct)
+    {
+        // Enforce: a user can only respond for themselves.
+        if (_currentUser.UserId != userId)
+            return Forbid();
+
+        await _respond.Handle(new RespondToShiftCommand(
+            id,
+            userId,
+            request.Response,
+            _time.GetUtcNow().UtcDateTime
+        ), ct);
+
+        return NoContent();
+    }
 }
+
+public sealed record RespondRequest(ParticipantConfirmationStatus Response);

@@ -7,10 +7,16 @@ using PpmV2.Api.Middleware;
 using PpmV2.Application.Admin.Interfaces;
 using PpmV2.Application.Auth.Interfaces;
 using PpmV2.Application.Locations.Interfaces;
+using PpmV2.Api.Common;
+using PpmV2.Application.Shifts.Commands.Approve;
+using PpmV2.Application.Shifts.Commands.Cancel;
 using PpmV2.Application.Shifts.Commands.Creation;
+using PpmV2.Application.Shifts.Commands.Propose;
+using PpmV2.Application.Shifts.Commands.Respond;
 using PpmV2.Application.Shifts.Interfaces;
 using PpmV2.Application.Shifts.Queries.GetShiftDetails;
 using PpmV2.Application.Shifts.Queries.GetShifts;
+using PpmV2.Application.Users.Interfaces;
 using PpmV2.Application.Users.Interfaces;
 using PpmV2.Domain.Users;
 using PpmV2.Infrastructure.Admin.Seeding;
@@ -20,6 +26,7 @@ using PpmV2.Infrastructure.Identity;
 using PpmV2.Infrastructure.Persistence;
 using PpmV2.Infrastructure.Persistence.Queries;
 using PpmV2.Infrastructure.Persistence.Repositories;
+using PpmV2.Infrastructure.Persistence;
 using System.Text;
 using System.Text.Json.Serialization;
 
@@ -132,6 +139,13 @@ builder.Services.AddAuthorization(options =>
             UserRole.Coordinator.ToString(),
             UserRole.Festmitarbeiter.ToString()
         ));
+
+    // Shift lifecycle management: Coordinator and Admin can approve/cancel
+    options.AddPolicy("ShiftManage", policy =>
+        policy.RequireRole(
+            UserRole.Coordinator.ToString(),
+            UserRole.Admin.ToString()
+        ));
 });
 
 
@@ -146,15 +160,27 @@ builder.Services.AddScoped<IUserProfileRepository, UserProfileRepository>();
 builder.Services.AddScoped<IAdminUserService, AdminUserService>();
 builder.Services.AddScoped<ILocationQueryService, LocationQueryService>();
 
-// Shifts: repository serves as write-port, details query, and list query for v1.
+// Shifts: repository implements all shift ports.
 builder.Services.AddScoped<IShiftRepository, ShiftRepository>();
 builder.Services.AddScoped<IShiftDetailsQuery, ShiftRepository>();
 builder.Services.AddScoped<IShiftListQuery, ShiftRepository>();
+builder.Services.AddScoped<IShiftWorkflowRepository, ShiftRepository>();
+
+// User location query
+builder.Services.AddScoped<IUserLocationQuery, UserLocationQueryService>();
+
+// Current user context (HTTP claims)
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUser, ClaimsCurrentUser>();
 
 // Application handlers (use cases)
 builder.Services.AddScoped<CreateShiftHandler>();
 builder.Services.AddScoped<GetShiftDetailsHandler>();
 builder.Services.AddScoped<GetShiftsHandler>();
+builder.Services.AddScoped<ProposeShiftTeamHandler>();
+builder.Services.AddScoped<ApproveShiftHandler>();
+builder.Services.AddScoped<CancelShiftHandler>();
+builder.Services.AddScoped<RespondToShiftHandler>();
 
 
 // --- CORS ---
@@ -243,6 +269,7 @@ using (var scope = app.Services.CreateScope())
     await DemoUsersSeeder.SeedAsync(userManager, dbContext, configuration, timeProvider, loggerFactory.CreateLogger("DemoUsersSeeder"));
     await LocationsSeeder.SeedAsync(dbContext, configuration, loggerFactory.CreateLogger("LocationsSeeder"), timeProvider);
     await ShiftsSeeder.SeedAsync(dbContext, userManager, configuration, timeProvider, loggerFactory.CreateLogger("ShiftsSeeder"));
+    await UserLocationAssignmentSeeder.SeedAsync(dbContext, userManager, configuration, timeProvider, loggerFactory.CreateLogger("UserLocationAssignmentSeeder"));
 }
 
 

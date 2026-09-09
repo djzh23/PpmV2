@@ -17,4 +17,5 @@ public sealed class ShiftParticipantDto
 {
     public Guid UserId { get; set; }
     public ShiftRole Role { get; set; }
+    public ParticipantConfirmationStatus ConfirmationStatus { get; set; }
 }

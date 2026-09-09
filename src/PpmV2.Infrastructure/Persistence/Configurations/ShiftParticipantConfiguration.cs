@@ -26,16 +26,19 @@ public class ShiftParticipantConfiguration : IEntityTypeConfiguration<ShiftParti
         // - no surrogate key is required for the join entity
         builder.HasKey(p => new { p.ShiftId, p.UserId });
 
-        // Persist role enum as int to keep database representation stable.
         builder.Property(p => p.Role)
             .HasConversion<int>()
             .IsRequired();
 
-        // Indexes to support common access patterns.
+        builder.Property(p => p.ConfirmationStatus)
+            .HasConversion<int>()
+            .IsRequired()
+            .HasDefaultValue(ParticipantConfirmationStatus.Accepted);
+
+        builder.Property(p => p.RespondedAt);
+
         builder.HasIndex(p => p.ShiftId);
         builder.HasIndex(p => p.UserId);
-
-        // Optimizes queries such as "find the lead of a given shift".
         builder.HasIndex(p => new { p.ShiftId, p.Role });
     }
 }

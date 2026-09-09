@@ -39,6 +39,9 @@ public class AppDbContext : IdentityDbContext<AppUser, AppRole, Guid>
     /// <summary>Participants assigned to a shift.</summary>
     public DbSet<ShiftParticipant> EinsatzParticipants => Set<ShiftParticipant>();
 
+    /// <summary>Location assignments defining a Festmitarbeiter's regular work profile.</summary>
+    public DbSet<UserLocationAssignment> UserLocationAssignments => Set<UserLocationAssignment>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -58,6 +61,7 @@ public class AppDbContext : IdentityDbContext<AppUser, AppRole, Guid>
         builder.Entity<UserProfile>().ToTable("user_profiles");
         builder.Entity<Shift>().ToTable("shifts");
         builder.Entity<ShiftParticipant>().ToTable("shift_participants");
+        builder.Entity<UserLocationAssignment>().ToTable("user_location_assignments");
 
 
         // Automatically applies all IEntityTypeConfiguration<> mappings from this assembly.
