@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using PpmV2.Application.Shifts.Commands.Creation;
 using PpmV2.Application.Shifts.DTOs;
 using PpmV2.Application.Shifts.Queries.GetShiftDetails;
+using PpmV2.Application.Shifts.Queries.GetShifts;
+using PpmV2.Domain.Shifts;
 
 namespace PpmV2.Api.Controllers.Einsaetze;
 
@@ -12,12 +14,25 @@ public class ShiftsController : ControllerBase
 {
     private readonly CreateShiftHandler _create;
     private readonly GetShiftDetailsHandler _get;
+    private readonly GetShiftsHandler _list;
 
-    public ShiftsController( CreateShiftHandler create, GetShiftDetailsHandler get)
+    public ShiftsController(CreateShiftHandler create, GetShiftDetailsHandler get, GetShiftsHandler list)
     {
         _create = create;
         _get = get;
+        _list = list;
     }
+
+    [HttpGet]
+    [Authorize]
+    public async Task<ActionResult<IReadOnlyList<ShiftSummaryDto>>> GetAll(
+        [FromQuery] ShiftStatus? status,
+        CancellationToken ct)
+    {
+        var result = await _list.Handle(new GetShiftsQuery(status), ct);
+        return Ok(result);
+    }
+
 
     [HttpPost]
     [Authorize(Policy = "EinsatzCreate")]

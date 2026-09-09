@@ -10,6 +10,7 @@ using PpmV2.Application.Locations.Interfaces;
 using PpmV2.Application.Shifts.Commands.Creation;
 using PpmV2.Application.Shifts.Interfaces;
 using PpmV2.Application.Shifts.Queries.GetShiftDetails;
+using PpmV2.Application.Shifts.Queries.GetShifts;
 using PpmV2.Application.Users.Interfaces;
 using PpmV2.Domain.Users;
 using PpmV2.Infrastructure.Admin.Seeding;
@@ -145,13 +146,15 @@ builder.Services.AddScoped<IUserProfileRepository, UserProfileRepository>();
 builder.Services.AddScoped<IAdminUserService, AdminUserService>();
 builder.Services.AddScoped<ILocationQueryService, LocationQueryService>();
 
-// Shifts: repository serves as write-port and details query for v1.
+// Shifts: repository serves as write-port, details query, and list query for v1.
 builder.Services.AddScoped<IShiftRepository, ShiftRepository>();
 builder.Services.AddScoped<IShiftDetailsQuery, ShiftRepository>();
+builder.Services.AddScoped<IShiftListQuery, ShiftRepository>();
 
 // Application handlers (use cases)
 builder.Services.AddScoped<CreateShiftHandler>();
 builder.Services.AddScoped<GetShiftDetailsHandler>();
+builder.Services.AddScoped<GetShiftsHandler>();
 
 
 // --- CORS ---
