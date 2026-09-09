@@ -100,8 +100,8 @@ Full layer diagrams, dependency graphs, and a request flow walkthrough are in [`
 | `POST` | `/api/auth/login` | Login and receive JWT token | Public |
 | `GET` | `/api/users/me` | Get own profile (firstname, lastname, email, role, status) | Bearer |
 | `GET` | `/api/locations` | List active locations | Bearer |
-| `GET` | `/api/einsaetze/{id}` | Get shift by ID | Bearer |
-| `POST` | `/api/einsaetze` | Create a shift (Draft) | Coordinator / Festmitarbeiter |
+| `GET` | `/api/shifts/{id}` | Get shift by ID | Bearer |
+| `POST` | `/api/shifts` | Create a shift (Draft) | Coordinator / Festmitarbeiter |
 | `GET` | `/api/admin/users/pending` | List pending users | Admin |
 | `GET` | `/api/admin/users/approved` | List approved users | Admin |
 | `GET` | `/api/admin/users/rejected` | List rejected users | Admin |

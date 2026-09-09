@@ -7,7 +7,7 @@ using PpmV2.Application.Shifts.Queries.GetShiftDetails;
 namespace PpmV2.Api.Controllers.Einsaetze;
 
 [ApiController]
-[Route("api/einsaetze")]
+[Route("api/shifts")]
 public class ShiftsController : ControllerBase
 {
     private readonly CreateShiftHandler _create;
