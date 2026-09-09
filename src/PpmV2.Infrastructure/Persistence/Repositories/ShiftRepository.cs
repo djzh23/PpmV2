@@ -80,12 +80,15 @@ public sealed class ShiftRepository : IShiftRepository, IShiftDetailsQuery, IShi
         var participants = await _db.EinsatzParticipants
             .AsNoTracking()
             .Where(p => p.ShiftId == einsatz.Id)
-            .Select(p => new ShiftParticipantDto
-            {
-                UserId = p.UserId,
-                Role = p.Role,
-                ConfirmationStatus = p.ConfirmationStatus
-            })
+            .Join(_db.UserProfiles, p => p.UserId, up => up.IdentityUserId,
+                (p, up) => new ShiftParticipantDto
+                {
+                    UserId = p.UserId,
+                    Firstname = up.Firstname,
+                    Lastname = up.Lastname,
+                    Role = p.Role,
+                    ConfirmationStatus = p.ConfirmationStatus
+                })
             .ToListAsync(ct);
 
         var missing = new List<string>();
