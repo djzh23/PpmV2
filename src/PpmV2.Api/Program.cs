@@ -20,6 +20,7 @@ using PpmV2.Infrastructure.Persistence;
 using PpmV2.Infrastructure.Persistence.Queries;
 using PpmV2.Infrastructure.Persistence.Repositories;
 using System.Text;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -35,7 +36,9 @@ var sqlServerConn = builder.Configuration.GetConnectionString("DefaultConnection
 
 // --- API setup (controllers + OpenAPI) ---
 builder.Services.AddOpenApi();
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 builder.Services.AddEndpointsApiExplorer();
 
 // --- Proxy headers ---

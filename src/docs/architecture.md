@@ -25,7 +25,7 @@ graph TD
     subgraph APP ["PpmV2.Application — Use Cases"]
       direction LR
       SHIFT_U["Shifts Use Cases
-      CreateShift · PublishShift · GetShiftDetails"]
+      CreateShift · GetShiftDetails"]
       AUTH_U["Auth Use Cases
       RegisterCommand · LoginQuery · IAuthService"]
       ADMIN_U["Admin Use Cases
