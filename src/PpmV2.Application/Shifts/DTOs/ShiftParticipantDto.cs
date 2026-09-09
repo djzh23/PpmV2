@@ -16,6 +16,8 @@ namespace PpmV2.Application.Shifts.DTOs;
 public sealed class ShiftParticipantDto
 {
     public Guid UserId { get; set; }
+    public string Firstname { get; set; } = default!;
+    public string Lastname { get; set; } = default!;
     public ShiftRole Role { get; set; }
     public ParticipantConfirmationStatus ConfirmationStatus { get; set; }
 }
