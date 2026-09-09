@@ -19,7 +19,7 @@ namespace PpmV2.Infrastructure.Persistence.Repositories;
 /// 
 /// Note: Some members still use legacy naming ("Einsaetze") for compatibility with the existing schema.
 /// </remarks>
-public sealed class ShiftRepository : IShiftRepository, IShiftDetailsQuery
+public sealed class ShiftRepository : IShiftRepository, IShiftDetailsQuery, IShiftListQuery
 {
     private readonly AppDbContext _db;
 
@@ -130,5 +130,56 @@ public sealed class ShiftRepository : IShiftRepository, IShiftDetailsQuery
             Readiness = readiness,
             MissingRequirements = missing
         };
+    }
+
+    // ---------- Read-Port (List Query) ----------
+
+    public async Task<IReadOnlyList<ShiftSummaryDto>> GetAllAsync(ShiftStatus? status, CancellationToken ct)
+    {
+        var query = _db.Einsaetze.AsNoTracking();
+
+        if (status.HasValue)
+            query = query.Where(e => e.Status == status.Value);
+
+        var shifts = await query
+            .OrderBy(e => e.StartAtUtc)
+            .Select(e => new
+            {
+                e.Id,
+                e.Title,
+                e.Status,
+                e.StartAtUtc,
+                e.EndAtUtc,
+                e.LocationId
+            })
+            .ToListAsync(ct);
+
+        if (shifts.Count == 0)
+            return [];
+
+        var locationIds = shifts.Select(e => e.LocationId).Distinct().ToList();
+        var locations = await _db.Locations
+            .AsNoTracking()
+            .Where(l => locationIds.Contains(l.Id))
+            .Select(l => new ShiftLocationDto { Id = l.Id, Name = l.Name, District = l.District, Address = l.Address })
+            .ToDictionaryAsync(l => l.Id, ct);
+
+        var shiftIds = shifts.Select(e => e.Id).ToList();
+        var participantCounts = await _db.EinsatzParticipants
+            .AsNoTracking()
+            .Where(p => shiftIds.Contains(p.ShiftId))
+            .GroupBy(p => p.ShiftId)
+            .Select(g => new { ShiftId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(g => g.ShiftId, g => g.Count, ct);
+
+        return shifts.Select(e => new ShiftSummaryDto(
+            e.Id,
+            e.Title,
+            e.Status,
+            e.StartAtUtc,
+            e.EndAtUtc,
+            locations[e.LocationId],
+            participantCounts.GetValueOrDefault(e.Id, 0)
+        )).ToList();
     }
 }
