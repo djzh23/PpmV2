@@ -210,21 +210,3 @@ This also reflects a key architectural decision: by keeping the backend a stable
 | [apiproject](https://github.com/djzh23/apiproject) | PPM v1, original Laravel backend from the Bachelor's thesis |
 | [frontendproject](https://github.com/djzh23/frontendproject) | PPM v1, .NET MAUI mobile client from the Bachelor's thesis |
 
----
-
-## Screenshots
-
-**Authentication: Login (POST /api/auth/login)**
-![Login 200 OK](src/docs/screenshots/auth-login-200.png)
-
-**Admin: Approved Users (GET /api/admin/users/approved)**
-![Admin approved users](src/docs/screenshots/admin-users-approved-200.png)
-
-**Shift: Get by ID (GET /api/einsaetze/:id)**
-![Shift by ID](src/docs/screenshots/einsatz-get-by-id-200.png)
-
-**Validation errors (400 Bad Request)**
-
-| Missing email | Missing password |
-|---|---|
-| ![Missing email](src/docs/screenshots/auth-login-400-missing-email.png) | ![Missing password](src/docs/screenshots/auth-login-400-missing-password.png) |
