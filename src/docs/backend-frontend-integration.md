@@ -58,6 +58,20 @@ Response `200`:
 
 ## Protected Endpoints
 
+**Own profile** `GET /api/users/me` — Bearer required
+
+Response:
+```json
+{
+  "id": "guid",
+  "firstname": "string",
+  "lastname": "string",
+  "email": "string",
+  "role": "Coordinator",
+  "status": "Approved"
+}
+```
+
 **Locations** `GET /api/locations` — Bearer required
 
 Response: array of `{ "id": "guid", "name": "string", "district": "string" }`

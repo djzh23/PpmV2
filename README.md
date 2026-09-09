@@ -98,6 +98,7 @@ Full layer diagrams, dependency graphs, and a request flow walkthrough are in [`
 |---|---|---|---|
 | `POST` | `/api/auth/register` | Register a new user | Public |
 | `POST` | `/api/auth/login` | Login and receive JWT token | Public |
+| `GET` | `/api/users/me` | Get own profile (firstname, lastname, email, role, status) | Bearer |
 | `GET` | `/api/locations` | List active locations | Bearer |
 | `GET` | `/api/einsaetze/{id}` | Get shift by ID | Bearer |
 | `POST` | `/api/einsaetze` | Create a shift (Draft) | Coordinator / Festmitarbeiter |
