@@ -1,12 +1,12 @@
-﻿# Architekturüberblick — PpmV2
+# Architecture — PpmV2
 
-PpmV2 ist ein REST-Backend nach **Clean Architecture**. Geschäftsregeln und Datenbankzugriffe sind strikt getrennt. Ein HTTP-Request durchläuft immer dieselben vier Schichten von oben nach unten — und kehrt als Response zurück. Keine Schicht überspringt eine andere, und die innerste Schicht (Domain) kennt weder die Datenbank noch das Web-Framework.
+PpmV2 follows Clean Architecture across four projects. Business rules and data access are strictly separated. Every HTTP request flows through the same four layers top to bottom and returns as a response. No layer skips another, and the innermost layer (Domain) has zero knowledge of the database or web framework.
 
 ---
 
-## Feature-Übersicht und Datenfluss
+## Layer Overview and Request Flow
 
-Das folgende Diagramm zeigt, **welche Funktion in welcher Schicht liegt** und **wie ein Request von oben nach unten fließt**.
+This diagram shows which responsibility belongs to which layer and how a request flows from top to bottom.
 
 ```mermaid
 graph TD
@@ -15,7 +15,7 @@ graph TD
     subgraph API ["PpmV2.Api — Controller Layer"]
       direction LR
       SHIFT_C["Shifts + Locations
-      CRUD · publish · GET by ID"]
+      Create · GET by ID"]
       AUTH_C["Auth
       POST /register · POST /login"]
       ADMIN_C["Admin
@@ -50,7 +50,7 @@ graph TD
       JwtService · ASP.NET Identity · Migrations: Postgres + SqlServer"]
     end
 
-    DB[("PostgreSQL (Docker)")]
+    DB[("PostgreSQL")]
 
     CLIENT -->|"HTTP Request"| AUTH_C
     CLIENT -->|"HTTP Request"| ADMIN_C
@@ -77,18 +77,17 @@ graph TD
     style DB     fill:#E6F1FB,stroke:#185FA5,color:#042C53
 ```
 
-**Leseanleitung:**
-- **Controller Layer (Api):** Nimmt HTTP-Requests entgegen und leitet sie weiter — enthält keine Geschäftslogik.
-- **Use Cases (Application):** Orchestrieren den Ablauf. Sie kennen die Domain, aber nicht die Datenbank. Persistenz wird nur über Interfaces aufgerufen.
-- **Entities (Domain):** Reine Fachlogik — `Shift`, `UserProfile`, `Location`. Kein EF Core, kein HTTP, keine externen Pakete.
-- **Infrastructure:** Implementiert die Interfaces aus Application. Hier liegt EF Core, Identity und JWT — alles was mit externen Systemen kommuniziert.
-- **`IRepository call (interface only)`:** Der Use Case kennt nur das Interface. Welche konkrete Klasse dahintersteckt, entscheidet der DI-Container in `Program.cs` zur Laufzeit — Application weiß davon nichts.
+- **Controller Layer (Api):** Receives HTTP requests and delegates to handlers. No business logic here.
+- **Use Cases (Application):** Orchestrate the flow. They know the Domain but not the database. Persistence is called through interfaces only.
+- **Entities (Domain):** Pure business logic — `Shift`, `UserProfile`, `Location`. No EF Core, no HTTP, no external packages.
+- **Infrastructure:** Implements the interfaces from Application. EF Core, Identity, and JWT live here — everything that talks to external systems.
+- **IRepository call (interface only):** The use case only knows the interface. Which concrete class is behind it is decided by the DI container in `Program.cs` at runtime — Application knows nothing about it.
 
 ---
 
-## Projektabhängigkeiten
+## Project Dependencies
 
-Dieses Diagramm zeigt die **compile-time Abhängigkeiten** zwischen den .NET-Projekten — also welches Projekt welches andere referenziert. Die Pfeile zeigen immer **nach innen**: wer wen kennt.
+This diagram shows the compile-time dependencies between .NET projects — which project references which. Arrows always point inward: who knows whom.
 
 ```mermaid
 graph TD
@@ -109,11 +108,11 @@ graph TD
     DOMAIN["PpmV2.Domain
     Shifts: Shift · ShiftParticipant · ShiftRole · ShiftStatus
     Users: UserProfile · UserRole · UserStatus
-    Locations: Location — no external dependencies"]
+    Locations: Location, no external dependencies"]
 
     TESTS["PpmV2.Tests
-    Admin · Auth · Shifts
-    xUnit · Moq · Mvc.Testing"]
+    Admin · Auth · Shifts · Infrastructure
+    xUnit · Moq · EF InMemory"]
 
     API   -->|"ProjectReference"| APP
     API   -->|"ProjectReference (DI root only)"| INFRA
@@ -130,19 +129,18 @@ graph TD
     style TESTS  fill:#EAF3DE,stroke:#3B6D11,color:#173404
 ```
 
-**Erklärung der Pfeile:**
-- **`ProjectReference`** — harte compile-time Abhängigkeit. Das Projekt kennt das andere direkt.
-- **`ProjectReference (DI root only)`** — `Api` referenziert `Infrastructure` ausschließlich um dort die Interfaces an konkrete Implementierungen zu binden (`Program.cs`). Für Geschäftslogik wird Infrastructure nie direkt genutzt.
-- **`implements interfaces from`** — `Infrastructure` kennt die Interfaces aus `Application` (z. B. `IShiftRepository`) und liefert die konkrete EF-Core-Implementierung. `Application` selbst weiß davon nichts.
-- **`PpmV2.Tests` → `Api` + `Infrastructure`** — Tests referenzieren beide, um über den DI-Container alle Schichten im Testkontext erreichbar zu machen.
+- **`ProjectReference`:** Hard compile-time dependency. The project knows the other directly.
+- **`ProjectReference (DI root only)`:** `Api` references `Infrastructure` exclusively to bind interfaces to concrete implementations in `Program.cs`. Infrastructure is never used directly for business logic.
+- **`implements interfaces from`:** `Infrastructure` knows the interfaces from `Application` (e.g. `IShiftRepository`) and provides the concrete EF Core implementation. `Application` itself knows nothing about it.
+- **`PpmV2.Tests` → `Api` + `Infrastructure`:** Tests reference both to reach all layers through the DI container in the test context.
 
-**Wichtige Regel:** `PpmV2.Domain` hat keine ausgehenden Pfeile — es kennt keine andere Schicht und hat keine externen NuGet-Pakete.
+`PpmV2.Domain` has no outgoing arrows — it knows no other layer and has no external NuGet packages.
 
 ---
 
-## Request Flow — Schritt für Schritt
+## Request Flow — Step by Step
 
-Beispiel: Ein Benutzer ruft einen Einsatz per ID ab.
+Example: a user fetches a shift by ID.
 
 ```mermaid
 sequenceDiagram
@@ -154,7 +152,7 @@ sequenceDiagram
     participant DB as PostgreSQL
 
     C  ->> A  : GET /api/einsaetze/:id
-    A  ->> AP : invoke GetShiftDetails Handler
+    A  ->> AP : invoke GetShiftDetailsHandler
     AP ->> D  : validate / apply business rules
     D  -->> AP: Shift entity returned
     AP ->> I  : IShiftRepository.GetByIdAsync()
@@ -166,24 +164,23 @@ sequenceDiagram
     A  -->> C  : HTTP 200 OK
 ```
 
-**Erklärung Schritt für Schritt:**
-1. Der **Controller** empfängt den Request und ruft den zuständigen Handler auf — keine Logik im Controller selbst.
-2. Der **Handler** (Application-Schicht) koordiniert den Ablauf: zuerst Domain-Validierung, dann Datenzugriff.
-3. Die **Domain** prüft Geschäftsregeln und gibt Entitäten zurück.
-4. Der Handler ruft `IShiftRepository.GetByIdAsync()` — nur das Interface, nicht EF Core direkt.
-5. Der **DI-Container** hat beim Start `IShiftRepository` an `ShiftRepository` (EF Core) gebunden — das passiert in `Program.cs`.
-6. **Infrastructure** führt die SQL-Abfrage aus und gibt gemappte Entitäten zurück.
-7. Der Handler baut ein `ShiftDetailsDto` und gibt es an den Controller zurück.
-8. Der **Controller** sendet die HTTP-Response.
+1. The **Controller** receives the request and calls the handler. No logic in the controller itself.
+2. The **Handler** (Application layer) coordinates the flow: first domain validation, then data access.
+3. The **Domain** checks business rules and returns entities.
+4. The handler calls `IShiftRepository.GetByIdAsync()` — the interface only, not EF Core directly.
+5. The **DI container** bound `IShiftRepository` to `ShiftRepository` (EF Core) on startup in `Program.cs`.
+6. **Infrastructure** runs the SQL query and returns mapped entities.
+7. The handler builds a `ShiftDetailsDto` and returns it to the controller.
+8. The **Controller** sends the HTTP response.
 
 ---
 
-## Zusammenfassung
+## Layer Summary
 
-| Schicht | Verantwortung | Externe NuGet-Pakete |
+| Layer | Responsibility | External NuGet packages |
 |---|---|---|
-| `PpmV2.Domain` | Entitäten und Geschäftsregeln | keine |
-| `PpmV2.Application` | Use Cases, Interfaces, DTOs | keine |
-| `PpmV2.Infrastructure` | EF Core, Identity, JWT, Migrations | EF Core · Npgsql · Identity |
-| `PpmV2.Api` | Controller, Middleware, DI-Root | JwtBearer · OpenApi |
-| `PpmV2.Tests` | Unit- und Integrationstests | xUnit · Moq · Mvc.Testing |
+| `PpmV2.Domain` | Entities and business rules | None |
+| `PpmV2.Application` | Use cases, interfaces, DTOs | None |
+| `PpmV2.Infrastructure` | EF Core, Identity, JWT, Migrations | EF Core, Npgsql, Identity |
+| `PpmV2.Api` | Controllers, middleware, DI root | JwtBearer, OpenApi |
+| `PpmV2.Tests` | Unit tests | xUnit, Moq, EF InMemory |

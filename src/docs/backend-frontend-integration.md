@@ -1,144 +1,189 @@
-# PpmV2 Backend Runtime + Frontend Contract
+# API Contract — PpmV2
 
-## 1) How to start the backend
+This document describes the API contract that any frontend consuming PpmV2 needs to know.
+For setup and deployment instructions see the [README](../../README.md).
 
-### Localhost (.NET process + Postgres in Docker)
+---
 
-1. Start Postgres:
-   - `docker compose up -d postgres`
-2. Start API:
-   - HTTP only: `dotnet run --project src/PpmV2.Api --launch-profile http`
-   - HTTPS + HTTP: `dotnet run --project src/PpmV2.Api --launch-profile https`
-3. API base URL:
-   - HTTP: `http://localhost:5105`
-   - HTTPS: `https://localhost:7129`
+## Base URLs
 
-### Docker (API + Postgres together)
+| Environment | URL |
+|---|---|
+| Local (dotnet run) | `http://localhost:5105` |
+| Local (Docker) | `http://localhost:8080` |
+| Production (Render) | `https://ppmv2-hbb4.onrender.com` |
 
-1. Start both services:
-   - `docker compose up --build -d`
-2. API base URL:
-   - `http://localhost:8080`
-3. Useful checks:
-   - `docker compose ps`
-   - `docker compose logs -f api`
+---
 
-### Render
+## Authentication
 
-Backend URL:
-- `https://ppmv2-hbb4.onrender.com`
+All protected routes require a JWT Bearer token in the `Authorization` header:
 
-Required environment variables:
-- `ASPNETCORE_ENVIRONMENT=Production`
-- `Jwt__Issuer=PpmV2`
-- `Jwt__Audience=PpmV2`
-- `Jwt__Key=<strong-random-secret>`
-- `DATABASE_URL=<provided by Render PostgreSQL>` (preferred) or `ConnectionStrings__PostgresConnection`
+```
+Authorization: Bearer <token>
+```
 
-Optional CORS env overrides:
-- `Cors__AllowedOrigins__0=https://your-frontend-domain`
-- `Cors__AllowedOrigins__1=https://another-frontend-domain`
-- or `Cors__AllowedOriginsCsv=https://a.example.com,https://b.example.com`
+**Register** `POST /api/auth/register`
 
-## 2) What frontend must know from backend
+Request:
+```json
+{
+  "firstname": "string (required)",
+  "lastname": "string (required)",
+  "email": "string (required, valid email)",
+  "password": "string (required, min 6 chars)"
+}
+```
 
-### Base URLs by environment
+Response `200`:
+```json
+{ "userId": "guid", "email": "string" }
+```
 
-- Localhost: `http://localhost:5105` or `https://localhost:7129`
-- Docker: `http://localhost:8080`
-- Render: `https://ppmv2-hbb4.onrender.com`
+Note: newly registered users have status `Pending` and must be approved by an admin before they can log in.
 
-### Auth model
+**Login** `POST /api/auth/login`
 
-- `POST /api/auth/register`:
-  - request:
-    - `firstname` (string, required)
-    - `lastname` (string, required)
-    - `email` (string, required, valid email)
-    - `password` (string, required, min length 6)
-  - response `200`:
-    - `userId` (guid)
-    - `email` (string)
+Request:
+```json
+{ "email": "string", "password": "string" }
+```
 
-- `POST /api/auth/login`:
-  - request:
-    - `email` (string, required)
-    - `password` (string, required)
-  - response `200`:
-    - `token` (JWT string)
-    - `userId` (guid)
-    - `email` (string)
+Response `200`:
+```json
+{ "token": "JWT string", "userId": "guid", "email": "string" }
+```
 
-Use JWT for protected routes:
-- header: `Authorization: Bearer <token>`
+---
 
-### Main protected endpoints
+## Protected Endpoints
 
-- `GET /api/locations`
-  - auth required
-  - response: array of `{ id, name, district }`
+**Locations** `GET /api/locations` — Bearer required
 
-- `POST /api/einsaetze`
-  - auth + role required: `Coordinator` or `Festmitarbeiter`
-  - request:
-    - `title` (string)
-    - `description` (string|null)
-    - `startAtUtc` (ISO UTC datetime)
-    - `endAtUtc` (ISO UTC datetime|null)
-    - `locationId` (guid)
-    - `participants` array of:
-      - `userId` (guid)
-      - `role` (`Leader` | `Member` | `Support`)
-  - response: `ShiftDetailsDto`
+Response: array of `{ "id": "guid", "name": "string", "district": "string" }`
 
-- `GET /api/einsaetze/{id}`
-  - auth required
-  - response: `ShiftDetailsDto`
+**Get shift** `GET /api/einsaetze/{id}` — Bearer required
 
-- Admin routes (admin role only):
-  - `GET /api/admin/users/pending`
-  - `GET /api/admin/users/approved`
-  - `GET /api/admin/users/rejected`
-  - `PUT /api/admin/users/approve/{id}`
-  - `PUT /api/admin/users/reject/{id}`
-  - `PUT /api/admin/users/{id}/role` with body `{ "role": "Coordinator" }`
+Response: `ShiftDetailsDto` (see below)
 
-### Important enums for UI logic
+**Create shift** `POST /api/einsaetze` — Coordinator or Festmitarbeiter role required
 
-- User roles: `Admin`, `Coordinator`, `Festmitarbeiter`, `Honorarkraft`
-- User status: `Pending`, `Approved`, `Rejected`, `Deactivated`
-- Shift status: `Draft`, `Planned`, `Active`, `Completed`, `Cancelled`
-- Shift participant role: `Leader`, `Member`, `Support`
+Request:
+```json
+{
+  "title": "string",
+  "description": "string or null",
+  "startAtUtc": "ISO 8601 UTC, e.g. 2026-04-01T20:00:00Z",
+  "endAtUtc": "ISO 8601 UTC or null",
+  "locationId": "guid",
+  "participants": [
+    { "userId": "guid", "role": "Leader | Member | Support" }
+  ]
+}
+```
 
-### Date/time handling
+Response: `ShiftDetailsDto`
+
+**ShiftDetailsDto shape:**
+```json
+{
+  "id": "guid",
+  "title": "string",
+  "description": "string or null",
+  "startAtUtc": "ISO 8601 UTC",
+  "endAtUtc": "ISO 8601 UTC or null",
+  "status": "Draft | Planned | Active | Completed | Cancelled",
+  "location": { "id": "guid", "name": "string", "district": "string" },
+  "participants": [
+    { "userId": "guid", "role": "Leader | Member | Support" }
+  ],
+  "readiness": "ready | not_ready",
+  "missingRequirements": ["leader", "festmitarbeiter"]
+}
+```
+
+---
+
+## Admin Endpoints
+
+All admin routes require the `Admin` role.
+
+| Method | Route | Description |
+|---|---|---|
+| `GET` | `/api/admin/users/pending` | List users awaiting approval |
+| `GET` | `/api/admin/users/approved` | List approved users |
+| `GET` | `/api/admin/users/rejected` | List rejected users |
+| `PUT` | `/api/admin/users/approve/{id}` | Approve a user |
+| `PUT` | `/api/admin/users/reject/{id}` | Reject a user |
+| `PUT` | `/api/admin/users/{id}/role` | Assign a role |
+
+Role assignment body:
+```json
+{ "role": "Admin | Coordinator | Festmitarbeiter | Honorarkraft" }
+```
+
+User list item shape:
+```json
+{
+  "id": "guid",
+  "email": "string",
+  "firstname": "string",
+  "lastname": "string",
+  "status": "Pending | Approved | Rejected | Deactivated",
+  "role": "Admin | Coordinator | Festmitarbeiter | Honorarkraft"
+}
+```
+
+---
+
+## Enums
+
+All enums are serialized as strings in API responses.
+
+| Enum | Values |
+|---|---|
+| User role | `Admin`, `Coordinator`, `Festmitarbeiter`, `Honorarkraft` |
+| User status | `Pending`, `Approved`, `Rejected`, `Deactivated` |
+| Shift status | `Draft`, `Planned`, `Active`, `Completed`, `Cancelled` |
+| Shift participant role | `Leader`, `Member`, `Support` |
+
+---
+
+## Error Responses
+
+All errors follow RFC 7807 (`application/problem+json`):
+
+```json
+{
+  "status": 400,
+  "title": "AUTH_VALIDATION_FAILED",
+  "detail": "Validation failed.",
+  "instance": "/api/auth/login",
+  "errors": {
+    "email": ["Email is required."]
+  }
+}
+```
+
+The `errors` field is only present when there are field-level validation errors.
+
+---
+
+## Date and Time
 
 - Backend expects and returns UTC timestamps.
-- Frontend should send ISO-8601 strings with `Z` suffix.
-- Frontend can convert UTC to local timezone only at display layer.
+- Frontend sends ISO 8601 strings with `Z` suffix: `2026-04-01T20:00:00Z`.
+- Convert UTC to local timezone only at the display layer.
 
-### Error response shape
+---
 
-Auth/domain errors use RFC7807-like `ProblemDetails`:
-- `status` (number)
-- `title` (error code, e.g. `AUTH_INVALID_CREDENTIALS`)
-- `detail` (message)
-- optional `errors` object with field-specific errors
+## CORS
 
-Validation middleware errors also return `application/problem+json`.
+CORS is allowlist-based. Allowed origins are configured per environment in `appsettings.{Environment}.json` or via environment variables:
 
-## 3) CORS behavior and configuration
+```
+Cors__AllowedOrigins__0=https://your-frontend-domain
+Cors__AllowedOriginsCsv=https://a.example.com,https://b.example.com
+```
 
-- CORS is allowlist-based and environment-configurable.
-- Origins are normalized (trailing slash removed, canonical scheme/host/port).
-- Exact allowed origins come from:
-  - `Cors:AllowedOrigins`
-  - `Cors:AllowedOriginsCsv`
-- Optional suffix matching is supported via:
-  - `Cors:AllowedOriginHostSuffixes`
-
-Examples:
-- `http://localhost:3000`
-- `http://localhost:5173`
-- `https://ppmv2-next-frontend.vercel.app`
-
-If frontend origin changes, update CORS config/env and redeploy the backend.
+If the frontend origin changes, update the CORS config and redeploy.
