@@ -486,4 +486,4 @@ $RECYCLE.BIN/
 
 !docs/
 !docs/diagrams/
-!docs/diagrams/*.png
+!docs/diagrams/*.pngbuild-diag.log

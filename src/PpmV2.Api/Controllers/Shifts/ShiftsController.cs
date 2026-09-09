@@ -19,12 +19,10 @@ public class ShiftsController : ControllerBase
         _get = get;
     }
 
-    // Nur Coordinator darf erstellen
     [HttpPost]
     [Authorize(Policy = "EinsatzCreate")]
     public async Task<ActionResult<ShiftDetailsDto>> Create([FromBody] CreateShiftRequest request, CancellationToken ct)
     {
-        // Request -> Command mapping
         var cmd = new CreateShiftCommand(
             request.Title,
             request.Description,
@@ -36,20 +34,18 @@ public class ShiftsController : ControllerBase
                 .ToList()
         );
 
-        // Command (Write)
         var id = await _create.Handle(cmd, ct);
 
-        // Query (Read)
         var details = await _get.Handle(new GetShiftDetailsQuery(id), ct);
         if (details is null)
-            return Problem("Einsatz created but not readable.");
+            return Problem("Shift was created but could not be read back.");
 
         return Ok(details);
     }
 
 
     [HttpGet("{id:guid}")]
-    [Authorize] // oder offen lassen, aber fürs MVP ist authorize ok
+    [Authorize]
     public async Task<ActionResult<ShiftDetailsDto>> GetById(Guid id, CancellationToken ct)
     {
         var details = await _get.Handle(new GetShiftDetailsQuery(id), ct);
