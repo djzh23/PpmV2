@@ -2,9 +2,10 @@
 
 public enum ShiftStatus
 {
-    Draft = 0,
-    Planned = 1,
-    Active = 2,
-    Completed = 3,
-    Cancelled = 4
+    Draft           = 0,
+    PendingApproval = 1,
+    Planned         = 2,
+    Active          = 3,
+    Completed       = 4,
+    Cancelled       = 5
 }

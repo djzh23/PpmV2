@@ -16,6 +16,13 @@ public class Location
 
     // Optional: Text for special features (parking, access, contact persons)
     public string? Notes { get; set; }
+
+    // Location detail page fields
+    public string? Description { get; set; }
+    public string? PhotoUrl { get; set; }
+    public string? ContactPerson { get; set; }
+    public int? Capacity { get; set; }
+
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
 }

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PpmV2.Application.Shifts.Interfaces;
 using PpmV2.Application.Users.DTOs;
 using PpmV2.Application.Users.Interfaces;
 using System.IdentityModel.Tokens.Jwt;
@@ -13,10 +14,17 @@ namespace PpmV2.Api.Controllers.Users;
 public class UsersController : ControllerBase
 {
     private readonly IUserProfileRepository _profileRepository;
+    private readonly IUserLocationQuery _locationQuery;
+    private readonly ICurrentUser _currentUser;
 
-    public UsersController(IUserProfileRepository profileRepository)
+    public UsersController(
+        IUserProfileRepository profileRepository,
+        IUserLocationQuery locationQuery,
+        ICurrentUser currentUser)
     {
         _profileRepository = profileRepository;
+        _locationQuery = locationQuery;
+        _currentUser = currentUser;
     }
 
     /// <summary>
@@ -46,5 +54,15 @@ public class UsersController : ControllerBase
             role,
             status
         ));
+    }
+
+    /// <summary>
+    /// Returns the locations a Festmitarbeiter is assigned to (their work profile).
+    /// </summary>
+    [HttpGet("me/locations")]
+    public async Task<IActionResult> GetMyLocations(CancellationToken ct)
+    {
+        var locations = await _locationQuery.GetAssignedLocationsAsync(_currentUser.UserId, ct);
+        return Ok(locations);
     }
 }

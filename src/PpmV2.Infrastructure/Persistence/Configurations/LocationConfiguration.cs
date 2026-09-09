@@ -33,6 +33,15 @@ public sealed class LocationConfiguration : IEntityTypeConfiguration<Location>
         builder.Property(x => x.Notes)
             .HasMaxLength(1000);
 
+        builder.Property(x => x.Description)
+            .HasMaxLength(2000);
+
+        builder.Property(x => x.PhotoUrl)
+            .HasMaxLength(500);
+
+        builder.Property(x => x.ContactPerson)
+            .HasMaxLength(200);
+
         builder.Property(x => x.IsActive).IsRequired();
 
         builder.Property(x => x.CreatedAt).IsRequired();
