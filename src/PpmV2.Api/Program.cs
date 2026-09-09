@@ -239,6 +239,7 @@ using (var scope = app.Services.CreateScope())
     await AdminSeeder.SeedAsync(userManager, dbContext, configuration, timeProvider, loggerFactory.CreateLogger("AdminSeeder"));
     await DemoUsersSeeder.SeedAsync(userManager, dbContext, configuration, timeProvider, loggerFactory.CreateLogger("DemoUsersSeeder"));
     await LocationsSeeder.SeedAsync(dbContext, configuration, loggerFactory.CreateLogger("LocationsSeeder"), timeProvider);
+    await ShiftsSeeder.SeedAsync(dbContext, userManager, configuration, timeProvider, loggerFactory.CreateLogger("ShiftsSeeder"));
 }
 
 
