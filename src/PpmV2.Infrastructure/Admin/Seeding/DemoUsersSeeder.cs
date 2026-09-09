@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using PpmV2.Domain.Users;
@@ -14,6 +15,7 @@ public static class DemoUsersSeeder
         UserManager<AppUser> userManager,
         AppDbContext dbContext,
         IConfiguration configuration,
+        TimeProvider timeProvider,
         ILogger logger)
     {
         var enabled = bool.Parse(configuration["Seeding:DemoUsers:Enabled"] ?? "false");
@@ -25,7 +27,6 @@ public static class DemoUsersSeeder
         }
 
         var password = configuration["Seeding:DemoUsers:DefaultPassword"] ?? "Pass123$";
-
 
         // 3 Coordinators, 3 Festmitarbeiter, 3 Honorarkraft
         var demoUsers = new (string Email, string Firstname, string Lastname, UserRole Role)[]
@@ -43,6 +44,7 @@ public static class DemoUsersSeeder
             ("hon3@test.com",   "Honorar", "Three", UserRole.Honorarkraft),
         };
 
+        var now = timeProvider.GetUtcNow().UtcDateTime;
         var createdCount = 0;
         var updatedCount = 0;
 
@@ -81,36 +83,11 @@ public static class DemoUsersSeeder
             {
                 var changed = false;
 
-                // Ensure invariants for existing seeded users as well.
-                if (!existing.EmailConfirmed)
-                {
-                    existing.EmailConfirmed = true;
-                    changed = true;
-                }
-
-                if (existing.Status != UserStatus.Approved)
-                {
-                    existing.Status = UserStatus.Approved;
-                    changed = true;
-                }
-
-                if (existing.Role != u.Role)
-                {
-                    existing.Role = u.Role;
-                    changed = true;
-                }
-
-                if (!existing.IsActive)
-                {
-                    existing.IsActive = true;
-                    changed = true;
-                }
-
-                if (!existing.IsProfileCompleted)
-                {
-                    existing.IsProfileCompleted = true;
-                    changed = true;
-                }
+                if (!existing.EmailConfirmed) { existing.EmailConfirmed = true; changed = true; }
+                if (existing.Status != UserStatus.Approved) { existing.Status = UserStatus.Approved; changed = true; }
+                if (existing.Role != u.Role) { existing.Role = u.Role; changed = true; }
+                if (!existing.IsActive) { existing.IsActive = true; changed = true; }
+                if (!existing.IsProfileCompleted) { existing.IsProfileCompleted = true; changed = true; }
 
                 if (changed)
                 {
@@ -129,7 +106,7 @@ public static class DemoUsersSeeder
                 }
             }
 
-            // Ensure role
+            // Ensure role assignment in Identity
             var roleName = u.Role.ToString();
             if (!await userManager.IsInRoleAsync(existing, roleName))
             {
@@ -142,12 +119,29 @@ public static class DemoUsersSeeder
                         u.Email,
                         string.Join(", ", addRole.Errors.Select(e => e.Description)));
                 }
-                else
+            }
+
+            // Ensure UserProfile exists so admin list shows firstname/lastname
+            var profileExists = await dbContext.UserProfiles
+                .AnyAsync(p => p.IdentityUserId == existing.Id);
+
+            if (!profileExists)
+            {
+                dbContext.UserProfiles.Add(new UserProfile
                 {
-                    logger.LogInformation("Assigned role {Role} to {Email}", roleName, u.Email);
-                }
+                    IdentityUserId = existing.Id,
+                    Email = u.Email,
+                    Firstname = u.Firstname,
+                    Lastname = u.Lastname,
+                    IsActive = true,
+                    CreatedAt = now
+                });
+
+                logger.LogInformation("Created UserProfile for demo user: {Email}", u.Email);
             }
         }
+
+        await dbContext.SaveChangesAsync();
 
         logger.LogInformation("DemoUsersSeeder finished. Created: {Created}, Updated: {Updated}", createdCount, updatedCount);
     }

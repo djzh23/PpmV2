@@ -237,7 +237,7 @@ using (var scope = app.Services.CreateScope())
 
     await RolesSeeder.SeedAsync(roleManager, loggerFactory.CreateLogger("RolesSeeder"));
     await AdminSeeder.SeedAsync(userManager, dbContext, configuration, timeProvider, loggerFactory.CreateLogger("AdminSeeder"));
-    await DemoUsersSeeder.SeedAsync(userManager, dbContext, configuration, loggerFactory.CreateLogger("DemoUsersSeeder"));
+    await DemoUsersSeeder.SeedAsync(userManager, dbContext, configuration, timeProvider, loggerFactory.CreateLogger("DemoUsersSeeder"));
     await LocationsSeeder.SeedAsync(dbContext, configuration, loggerFactory.CreateLogger("LocationsSeeder"), timeProvider);
 }
 
