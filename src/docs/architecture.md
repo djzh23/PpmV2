@@ -151,7 +151,7 @@ sequenceDiagram
     participant I  as PpmV2.Infrastructure
     participant DB as PostgreSQL
 
-    C  ->> A  : GET /api/einsaetze/:id
+    C  ->> A  : GET /api/shifts/:id
     A  ->> AP : invoke GetShiftDetailsHandler
     AP ->> D  : validate / apply business rules
     D  -->> AP: Shift entity returned

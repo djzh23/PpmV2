@@ -76,11 +76,11 @@ Response:
 
 Response: array of `{ "id": "guid", "name": "string", "district": "string" }`
 
-**Get shift** `GET /api/einsaetze/{id}` — Bearer required
+**Get shift** `GET /api/shifts/{id}` — Bearer required
 
 Response: `ShiftDetailsDto` (see below)
 
-**Create shift** `POST /api/einsaetze` — Coordinator or Festmitarbeiter role required
+**Create shift** `POST /api/shifts` — Coordinator or Festmitarbeiter role required
 
 Request:
 ```json
