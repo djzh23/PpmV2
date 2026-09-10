@@ -2,9 +2,11 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PpmV2.Application.Shifts.Commands.Approve;
 using PpmV2.Application.Shifts.Commands.Cancel;
+using PpmV2.Application.Shifts.Commands.Complete;
 using PpmV2.Application.Shifts.Commands.Creation;
 using PpmV2.Application.Shifts.Commands.Propose;
 using PpmV2.Application.Shifts.Commands.Respond;
+using PpmV2.Application.Shifts.Commands.Start;
 using PpmV2.Application.Shifts.DTOs;
 using PpmV2.Application.Shifts.Interfaces;
 using PpmV2.Application.Shifts.Queries.GetShiftDetails;
@@ -24,6 +26,8 @@ public class ShiftsController : ControllerBase
     private readonly ApproveShiftHandler _approve;
     private readonly CancelShiftHandler _cancel;
     private readonly RespondToShiftHandler _respond;
+    private readonly StartShiftHandler _start;
+    private readonly CompleteShiftHandler _complete;
     private readonly ICurrentUser _currentUser;
     private readonly TimeProvider _time;
 
@@ -35,6 +39,8 @@ public class ShiftsController : ControllerBase
         ApproveShiftHandler approve,
         CancelShiftHandler cancel,
         RespondToShiftHandler respond,
+        StartShiftHandler start,
+        CompleteShiftHandler complete,
         ICurrentUser currentUser,
         TimeProvider time)
     {
@@ -45,6 +51,8 @@ public class ShiftsController : ControllerBase
         _approve = approve;
         _cancel = cancel;
         _respond = respond;
+        _start = start;
+        _complete = complete;
         _currentUser = currentUser;
         _time = time;
     }
@@ -122,6 +130,28 @@ public class ShiftsController : ControllerBase
     public async Task<IActionResult> Cancel(Guid id, CancellationToken ct)
     {
         await _cancel.Handle(new CancelShiftCommand(id), ct);
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Coordinator starts a planned shift: Planned → Active.
+    /// </summary>
+    [HttpPut("{id:guid}/start")]
+    [Authorize(Policy = "ShiftManage")]
+    public async Task<IActionResult> Start(Guid id, CancellationToken ct)
+    {
+        await _start.Handle(new StartShiftCommand(id), ct);
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Coordinator completes an active shift: Active → Completed.
+    /// </summary>
+    [HttpPut("{id:guid}/complete")]
+    [Authorize(Policy = "ShiftManage")]
+    public async Task<IActionResult> Complete(Guid id, CancellationToken ct)
+    {
+        await _complete.Handle(new CompleteShiftCommand(id), ct);
         return NoContent();
     }
 

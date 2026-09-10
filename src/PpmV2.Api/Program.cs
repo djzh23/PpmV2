@@ -11,9 +11,11 @@ using PpmV2.Api.Common;
 using PpmV2.Infrastructure.Persistence.Commands;
 using PpmV2.Application.Shifts.Commands.Approve;
 using PpmV2.Application.Shifts.Commands.Cancel;
+using PpmV2.Application.Shifts.Commands.Complete;
 using PpmV2.Application.Shifts.Commands.Creation;
 using PpmV2.Application.Shifts.Commands.Propose;
 using PpmV2.Application.Shifts.Commands.Respond;
+using PpmV2.Application.Shifts.Commands.Start;
 using PpmV2.Application.Shifts.Interfaces;
 using PpmV2.Application.Shifts.Queries.GetShiftDetails;
 using PpmV2.Application.Shifts.Queries.GetShifts;
@@ -181,6 +183,8 @@ builder.Services.AddScoped<ProposeShiftTeamHandler>();
 builder.Services.AddScoped<ApproveShiftHandler>();
 builder.Services.AddScoped<CancelShiftHandler>();
 builder.Services.AddScoped<RespondToShiftHandler>();
+builder.Services.AddScoped<StartShiftHandler>();
+builder.Services.AddScoped<CompleteShiftHandler>();
 
 
 // --- CORS ---
