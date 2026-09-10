@@ -110,11 +110,12 @@ public sealed class LocationsIntegrationTests(PpmV2WebApplicationFactory factory
     {
         var (token, _) = await CreateApprovedUserAsync("Coordinator");
         var locationId = await CreateLocationAsync(token, $"Update-{Guid.NewGuid():N}", "Köln");
+        var updatedName = $"Geändert-{Guid.NewGuid():N}";
 
         Authorize(token);
         var response = await Client.PutAsJsonAsync($"/api/locations/{locationId}", new
         {
-            name = "Geänderte Unterkunft",
+            name = updatedName,
             district = "Köln",
             address = "Neue Adresse 10",
             capacity = 30,
@@ -124,7 +125,7 @@ public sealed class LocationsIntegrationTests(PpmV2WebApplicationFactory factory
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
         var body = await response.Content.ReadFromJsonAsync<Dictionary<string, object>>();
-        Assert.Equal("Geänderte Unterkunft", body!["name"].ToString());
+        Assert.Equal(updatedName, body!["name"].ToString());
     }
 
     [Fact]

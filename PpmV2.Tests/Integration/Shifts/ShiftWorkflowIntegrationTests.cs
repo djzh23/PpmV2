@@ -24,7 +24,7 @@ public sealed class ShiftWorkflowIntegrationTests(PpmV2WebApplicationFactory fac
     public async Task FullLifecycle_CreateToComplete_AllTransitionsSucceed()
     {
         // ── Arrange ──────────────────────────────────────────────────────────
-        var (coordToken, _) = await CreateApprovedUserAsync("Coordinator");
+        var (coordToken, coordId) = await CreateApprovedUserAsync("Coordinator");
         var locationId = await CreateLocationAsync(coordToken, $"Lifecycle-{Guid.NewGuid():N}", "Berlin");
 
         // ── Create (→ Draft) ─────────────────────────────────────────────────
@@ -36,7 +36,7 @@ public sealed class ShiftWorkflowIntegrationTests(PpmV2WebApplicationFactory fac
             startAtUtc = DateTime.UtcNow.AddDays(7).ToString("o"),
             endAtUtc = DateTime.UtcNow.AddDays(7).AddHours(4).ToString("o"),
             locationId,
-            participants = Array.Empty<object>()
+            participants = new[] { new { userId = coordId, role = 0 } } // 0 = Leader
         });
         Assert.Equal(HttpStatusCode.OK, createResponse.StatusCode);
 
@@ -106,7 +106,7 @@ public sealed class ShiftWorkflowIntegrationTests(PpmV2WebApplicationFactory fac
     public async Task Start_DraftShift_Returns400WithProblemDetails()
     {
         // Start is only valid from Planned. Attempting it on a Draft must return 400.
-        var (coordToken, _) = await CreateApprovedUserAsync("Coordinator");
+        var (coordToken, coordId) = await CreateApprovedUserAsync("Coordinator");
         var locationId = await CreateLocationAsync(coordToken, $"WrongStatus-{Guid.NewGuid():N}", "Hamburg");
 
         Authorize(coordToken);
@@ -115,7 +115,7 @@ public sealed class ShiftWorkflowIntegrationTests(PpmV2WebApplicationFactory fac
             title = "Wrong-Status-Test",
             startAtUtc = DateTime.UtcNow.AddDays(1).ToString("o"),
             locationId,
-            participants = Array.Empty<object>()
+            participants = new[] { new { userId = coordId, role = 0 } } // 0 = Leader
         });
         var shift = await createResponse.Content.ReadFromJsonAsync<Dictionary<string, object>>();
         var shiftId = Guid.Parse(shift!["id"].ToString()!);
