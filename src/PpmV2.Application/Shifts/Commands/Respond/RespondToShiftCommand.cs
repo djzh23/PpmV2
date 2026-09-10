@@ -1,4 +1,4 @@
-using PpmV2.Application.Common.Exceptions;
+using PpmV2.Application.Common.Results;
 using PpmV2.Application.Shifts.Interfaces;
 using PpmV2.Domain.Shifts;
 
@@ -16,44 +16,30 @@ public sealed class RespondToShiftHandler
 
     public RespondToShiftHandler(IShiftWorkflowRepository repo) => _repo = repo;
 
-    public async Task Handle(RespondToShiftCommand cmd, CancellationToken ct)
+    public async Task<ServiceResult> Handle(RespondToShiftCommand cmd, CancellationToken ct)
     {
         if (cmd.Response == ParticipantConfirmationStatus.Invited)
-            throw new ValidationException(new Dictionary<string, string[]>
-            {
-                ["response"] = ["Response must be Accepted or Declined."]
-            });
+            return ServiceResult.Fail("Response must be Accepted or Declined.");
 
         var shift = await _repo.GetWithParticipantsAsync(cmd.ShiftId, ct);
 
         if (shift is null)
-            throw new ValidationException(new Dictionary<string, string[]>
-            {
-                ["shiftId"] = ["Shift not found."]
-            });
+            return ServiceResult.Fail("Shift not found.");
 
         if (shift.Status != ShiftStatus.PendingApproval)
-            throw new ValidationException(new Dictionary<string, string[]>
-            {
-                ["status"] = ["Can only respond to shifts in PendingApproval status."]
-            });
+            return ServiceResult.Fail("Can only respond to shifts in PendingApproval status.");
 
         var participant = shift.Participants.FirstOrDefault(p => p.UserId == cmd.UserId);
         if (participant is null)
-            throw new ValidationException(new Dictionary<string, string[]>
-            {
-                ["userId"] = ["You are not a participant of this shift."]
-            });
+            return ServiceResult.Fail("You are not a participant of this shift.");
 
         if (participant.ConfirmationStatus != ParticipantConfirmationStatus.Invited)
-            throw new ValidationException(new Dictionary<string, string[]>
-            {
-                ["confirmationStatus"] = ["You have already responded to this shift."]
-            });
+            return ServiceResult.Fail("You have already responded to this shift.");
 
         participant.ConfirmationStatus = cmd.Response;
         participant.RespondedAt = cmd.RespondedAt;
 
         await _repo.SaveChangesAsync(ct);
+        return ServiceResult.Ok();
     }
 }

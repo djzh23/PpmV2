@@ -1,4 +1,4 @@
-using PpmV2.Application.Common.Exceptions;
+using PpmV2.Application.Common.Results;
 using PpmV2.Application.Shifts.Interfaces;
 using PpmV2.Domain.Shifts;
 
@@ -15,23 +15,18 @@ public sealed class StartShiftHandler
 
     public StartShiftHandler(IShiftWorkflowRepository repo) => _repo = repo;
 
-    public async Task Handle(StartShiftCommand cmd, CancellationToken ct)
+    public async Task<ServiceResult> Handle(StartShiftCommand cmd, CancellationToken ct)
     {
         var shift = await _repo.GetWithParticipantsAsync(cmd.ShiftId, ct);
 
         if (shift is null)
-            throw new ValidationException(new Dictionary<string, string[]>
-            {
-                ["shiftId"] = ["Shift not found."]
-            });
+            return ServiceResult.Fail("Shift not found.");
 
         if (shift.Status != ShiftStatus.Planned)
-            throw new ValidationException(new Dictionary<string, string[]>
-            {
-                ["status"] = [$"Only Planned shifts can be started. Current status: {shift.Status}."]
-            });
+            return ServiceResult.Fail($"Only Planned shifts can be started. Current status: {shift.Status}.");
 
         shift.Status = ShiftStatus.Active;
         await _repo.SaveChangesAsync(ct);
+        return ServiceResult.Ok();
     }
 }

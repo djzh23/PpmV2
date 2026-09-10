@@ -1,4 +1,4 @@
-using PpmV2.Application.Common.Exceptions;
+using PpmV2.Application.Common.Results;
 using PpmV2.Application.Shifts.Interfaces;
 using PpmV2.Domain.Shifts;
 
@@ -15,23 +15,18 @@ public sealed class CancelShiftHandler
 
     public CancelShiftHandler(IShiftWorkflowRepository repo) => _repo = repo;
 
-    public async Task Handle(CancelShiftCommand cmd, CancellationToken ct)
+    public async Task<ServiceResult> Handle(CancelShiftCommand cmd, CancellationToken ct)
     {
         var shift = await _repo.GetWithParticipantsAsync(cmd.ShiftId, ct);
 
         if (shift is null)
-            throw new ValidationException(new Dictionary<string, string[]>
-            {
-                ["shiftId"] = ["Shift not found."]
-            });
+            return ServiceResult.Fail("Shift not found.");
 
         if (shift.Status == ShiftStatus.Completed)
-            throw new ValidationException(new Dictionary<string, string[]>
-            {
-                ["status"] = ["Completed shifts cannot be cancelled."]
-            });
+            return ServiceResult.Fail("Completed shifts cannot be cancelled.");
 
         shift.Status = ShiftStatus.Cancelled;
         await _repo.SaveChangesAsync(ct);
+        return ServiceResult.Ok();
     }
 }

@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PpmV2.Api.Common;
+using PpmV2.Application.Common.Results;
 using PpmV2.Application.Shifts.Commands.Approve;
 using PpmV2.Application.Shifts.Commands.Cancel;
 using PpmV2.Application.Shifts.Commands.Complete;
@@ -107,7 +109,11 @@ public class ShiftsController : ControllerBase
     [Authorize(Policy = "EinsatzCreate")]
     public async Task<IActionResult> Propose(Guid id, CancellationToken ct)
     {
-        await _propose.Handle(new ProposeShiftTeamCommand(id, _currentUser.UserId), ct);
+        var result = await _propose.Handle(new ProposeShiftTeamCommand(id, _currentUser.UserId), ct);
+
+        if (!result.Success)
+            return ApiProblem.From(result.ToAppError(), HttpContext);
+
         return NoContent();
     }
 
@@ -118,7 +124,11 @@ public class ShiftsController : ControllerBase
     [Authorize(Policy = "ShiftManage")]
     public async Task<IActionResult> Approve(Guid id, CancellationToken ct)
     {
-        await _approve.Handle(new ApproveShiftCommand(id), ct);
+        var result = await _approve.Handle(new ApproveShiftCommand(id), ct);
+
+        if (!result.Success)
+            return ApiProblem.From(result.ToAppError(), HttpContext);
+
         return NoContent();
     }
 
@@ -129,7 +139,11 @@ public class ShiftsController : ControllerBase
     [Authorize(Policy = "ShiftManage")]
     public async Task<IActionResult> Cancel(Guid id, CancellationToken ct)
     {
-        await _cancel.Handle(new CancelShiftCommand(id), ct);
+        var result = await _cancel.Handle(new CancelShiftCommand(id), ct);
+
+        if (!result.Success)
+            return ApiProblem.From(result.ToAppError(), HttpContext);
+
         return NoContent();
     }
 
@@ -140,7 +154,11 @@ public class ShiftsController : ControllerBase
     [Authorize(Policy = "ShiftManage")]
     public async Task<IActionResult> Start(Guid id, CancellationToken ct)
     {
-        await _start.Handle(new StartShiftCommand(id), ct);
+        var result = await _start.Handle(new StartShiftCommand(id), ct);
+
+        if (!result.Success)
+            return ApiProblem.From(result.ToAppError(), HttpContext);
+
         return NoContent();
     }
 
@@ -151,7 +169,11 @@ public class ShiftsController : ControllerBase
     [Authorize(Policy = "ShiftManage")]
     public async Task<IActionResult> Complete(Guid id, CancellationToken ct)
     {
-        await _complete.Handle(new CompleteShiftCommand(id), ct);
+        var result = await _complete.Handle(new CompleteShiftCommand(id), ct);
+
+        if (!result.Success)
+            return ApiProblem.From(result.ToAppError(), HttpContext);
+
         return NoContent();
     }
 
@@ -166,16 +188,18 @@ public class ShiftsController : ControllerBase
         [FromBody] RespondRequest request,
         CancellationToken ct)
     {
-        // Enforce: a user can only respond for themselves.
         if (_currentUser.UserId != userId)
             return Forbid();
 
-        await _respond.Handle(new RespondToShiftCommand(
+        var result = await _respond.Handle(new RespondToShiftCommand(
             id,
             userId,
             request.Response,
             _time.GetUtcNow().UtcDateTime
         ), ct);
+
+        if (!result.Success)
+            return ApiProblem.From(result.ToAppError(), HttpContext);
 
         return NoContent();
     }
