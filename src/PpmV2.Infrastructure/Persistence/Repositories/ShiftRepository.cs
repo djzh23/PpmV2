@@ -48,10 +48,14 @@ public sealed class ShiftRepository : IShiftRepository, IShiftDetailsQuery, IShi
 
     public async Task<ShiftDetailsDto?> GetByIdAsync(Guid einsatzId, CancellationToken ct)
     {
-        var einsatz = await _db.Einsaetze
-            .AsNoTracking()
-            .Where(e => e.Id == einsatzId)
-            .Select(e => new
+        // Query 1: shift + location in one JOIN — avoids a second round-trip just for location data.
+        // The Shift entity has no Location navigation property, so we use an explicit JOIN projection.
+        // We only select the columns the DTO actually needs, not the full Location entity.
+        var header = await (
+            from e in _db.Einsaetze.AsNoTracking()
+            where e.Id == einsatzId
+            join l in _db.Locations.AsNoTracking() on e.LocationId equals l.Id
+            select new
             {
                 e.Id,
                 e.Title,
@@ -59,60 +63,68 @@ public sealed class ShiftRepository : IShiftRepository, IShiftDetailsQuery, IShi
                 e.StartAtUtc,
                 e.EndAtUtc,
                 e.Status,
-                e.LocationId
-            })
-            .FirstOrDefaultAsync(ct);
-
-        if (einsatz is null) return null;
-
-        var location = await _db.Locations
-            .AsNoTracking()
-            .Where(l => l.Id == einsatz.LocationId)
-            .Select(l => new ShiftLocationDto
-            {
-                Id = l.Id,
-                Name = l.Name,
-                District = l.District,
-                Address = l.Address
-            })
-            .FirstAsync(ct);
-
-        var participants = await _db.EinsatzParticipants
-            .AsNoTracking()
-            .Where(p => p.ShiftId == einsatz.Id)
-            .Join(_db.UserProfiles, p => p.UserId, up => up.IdentityUserId,
-                (p, up) => new ShiftParticipantDto
+                Location = new ShiftLocationDto
                 {
-                    UserId = p.UserId,
-                    Firstname = up.Firstname,
-                    Lastname = up.Lastname,
-                    Role = p.Role,
-                    ConfirmationStatus = p.ConfirmationStatus
-                })
-            .ToListAsync(ct);
+                    Id = l.Id,
+                    Name = l.Name,
+                    District = l.District,
+                    Address = l.Address
+                }
+            }
+        ).FirstOrDefaultAsync(ct);
 
+        if (header is null) return null;
+
+        // Query 2: participants + user display names + system role in one 2-way JOIN.
+        // Joining Users here replaces the previous 4th query that counted Festmitarbeiter separately.
+        // The system role (UserRole) is only needed in-memory for readiness computation —
+        // it is not exposed on ShiftParticipantDto to avoid leaking internal role info to clients.
+        var participantRows = await (
+            from p in _db.EinsatzParticipants.AsNoTracking()
+            where p.ShiftId == einsatzId
+            join up in _db.UserProfiles.AsNoTracking() on p.UserId equals up.IdentityUserId
+            join u in _db.Users.AsNoTracking() on p.UserId equals u.Id
+            select new
+            {
+                p.UserId,
+                p.Role,
+                p.ConfirmationStatus,
+                up.Firstname,
+                up.Lastname,
+                SystemRole = u.Role
+            }
+        ).ToListAsync(ct);
+
+        // Readiness computed in-memory — no additional DB query needed.
+        // We have all required data: shift roles from p.Role, system roles from SystemRole.
         var missing = new List<string>();
 
-        if (participants.Count(p => p.Role == ShiftRole.Leader) != 1)
+        if (participantRows.Count(p => p.Role == ShiftRole.Leader) != 1)
             missing.Add("leader");
 
-        var userIds = participants.Select(p => p.UserId).Distinct().ToList();
-        var festCount = await _db.Users
-            .AsNoTracking()
-            .Where(u => userIds.Contains(u.Id))
-            .CountAsync(u => u.Role == UserRole.Festmitarbeiter, ct);
+        if (!participantRows.Any(p => p.SystemRole == UserRole.Festmitarbeiter))
+            missing.Add("festmitarbeiter");
 
-        if (festCount < 1) missing.Add("festmitarbeiter");
+        var participants = participantRows
+            .Select(p => new ShiftParticipantDto
+            {
+                UserId = p.UserId,
+                Firstname = p.Firstname,
+                Lastname = p.Lastname,
+                Role = p.Role,
+                ConfirmationStatus = p.ConfirmationStatus
+            })
+            .ToList();
 
         return new ShiftDetailsDto
         {
-            Id = einsatz.Id,
-            Title = einsatz.Title,
-            Description = einsatz.Description,
-            StartAtUtc = einsatz.StartAtUtc,
-            EndAtUtc = einsatz.EndAtUtc,
-            Status = einsatz.Status,
-            Location = location,
+            Id = header.Id,
+            Title = header.Title,
+            Description = header.Description,
+            StartAtUtc = header.StartAtUtc,
+            EndAtUtc = header.EndAtUtc,
+            Status = header.Status,
+            Location = header.Location,
             Participants = participants,
             Readiness = missing.Count == 0 ? "ready" : "not_ready",
             MissingRequirements = missing
