@@ -29,7 +29,7 @@ public sealed class LocationQueryService : ILocationQueryService
     public async Task<IReadOnlyList<LocationListItemDto>> GetActiveAsync(CancellationToken ct = default)
     {
         return await _db.Locations
-            .AsNoTracking() // Read-only query: no change tracking required.
+            .AsNoTracking()
             .Where(l => l.IsActive)
             .OrderBy(l => l.District)
             .ThenBy(l => l.Name)
@@ -39,5 +39,31 @@ public sealed class LocationQueryService : ILocationQueryService
                 l.District
             ))
             .ToListAsync(ct);
+    }
+
+    /// <summary>
+    /// Returns the full detail view of a single location, regardless of active status.
+    /// Returns null when not found.
+    /// </summary>
+    public async Task<LocationDetailDto?> GetByIdAsync(Guid id, CancellationToken ct = default)
+    {
+        return await _db.Locations
+            .AsNoTracking()
+            .Where(l => l.Id == id)
+            .Select(l => new LocationDetailDto(
+                l.Id,
+                l.Name,
+                l.District,
+                l.Address,
+                l.Description,
+                l.PhotoUrl,
+                l.ContactPerson,
+                l.Capacity,
+                l.Notes,
+                l.IsActive,
+                l.CreatedAt,
+                l.UpdatedAt
+            ))
+            .FirstOrDefaultAsync(ct);
     }
 }

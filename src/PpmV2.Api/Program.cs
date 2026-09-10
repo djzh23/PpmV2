@@ -8,6 +8,7 @@ using PpmV2.Application.Admin.Interfaces;
 using PpmV2.Application.Auth.Interfaces;
 using PpmV2.Application.Locations.Interfaces;
 using PpmV2.Api.Common;
+using PpmV2.Infrastructure.Persistence.Commands;
 using PpmV2.Application.Shifts.Commands.Approve;
 using PpmV2.Application.Shifts.Commands.Cancel;
 using PpmV2.Application.Shifts.Commands.Creation;
@@ -17,7 +18,6 @@ using PpmV2.Application.Shifts.Interfaces;
 using PpmV2.Application.Shifts.Queries.GetShiftDetails;
 using PpmV2.Application.Shifts.Queries.GetShifts;
 using PpmV2.Application.Users.Interfaces;
-using PpmV2.Application.Users.Interfaces;
 using PpmV2.Domain.Users;
 using PpmV2.Infrastructure.Admin.Seeding;
 using PpmV2.Infrastructure.Admin.Services;
@@ -26,7 +26,6 @@ using PpmV2.Infrastructure.Identity;
 using PpmV2.Infrastructure.Persistence;
 using PpmV2.Infrastructure.Persistence.Queries;
 using PpmV2.Infrastructure.Persistence.Repositories;
-using PpmV2.Infrastructure.Persistence;
 using System.Text;
 using System.Text.Json.Serialization;
 
@@ -159,6 +158,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserProfileRepository, UserProfileRepository>();
 builder.Services.AddScoped<IAdminUserService, AdminUserService>();
 builder.Services.AddScoped<ILocationQueryService, LocationQueryService>();
+builder.Services.AddScoped<ILocationCommandService, LocationCommandService>();
 
 // Shifts: repository implements all shift ports.
 builder.Services.AddScoped<IShiftRepository, ShiftRepository>();
