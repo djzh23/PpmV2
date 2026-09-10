@@ -73,6 +73,7 @@ public sealed class LocationCommandService : ILocationCommandService
         location.ContactPerson = request.ContactPerson;
         location.Capacity = request.Capacity;
         location.Notes = request.Notes;
+        location.IsActive = request.IsActive;
         location.UpdatedAt = _time.GetUtcNow().UtcDateTime;
 
         await _db.SaveChangesAsync(ct);

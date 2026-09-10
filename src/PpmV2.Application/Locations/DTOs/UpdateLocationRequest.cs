@@ -8,5 +8,6 @@ public sealed record UpdateLocationRequest(
     string? PhotoUrl,
     string? ContactPerson,
     int? Capacity,
-    string? Notes
+    string? Notes,
+    bool IsActive = true
 );
