@@ -58,5 +58,12 @@ public class ShiftConfiguration : IEntityTypeConfiguration<Shift>
             .WithOne()
             .HasForeignKey(p => p.ShiftId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // Composite index covers the common filter+sort path in GetAllAsync:
+        // WHERE Status = ? ORDER BY StartAtUtc
+        builder.HasIndex(e => new { e.Status, e.StartAtUtc });
+
+        // Supports the batch location lookup in GetAllAsync (shifts.LocationId IN (...))
+        builder.HasIndex(e => e.LocationId);
     }
 }

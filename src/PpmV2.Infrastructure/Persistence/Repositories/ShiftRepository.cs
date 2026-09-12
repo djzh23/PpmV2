@@ -161,19 +161,27 @@ public sealed class ShiftRepository : IShiftRepository, IShiftDetailsQuery, IShi
             return [];
 
         var locationIds = shifts.Select(e => e.LocationId).Distinct().ToList();
-        var locations = await _db.Locations
+        var shiftIds = shifts.Select(e => e.Id).ToList();
+
+        // Queries 2 and 3 are independent of each other once shift IDs and location IDs are known.
+        // Running them in parallel reduces wall-clock latency, especially against a remote database.
+        var locationsTask = _db.Locations
             .AsNoTracking()
             .Where(l => locationIds.Contains(l.Id))
             .Select(l => new ShiftLocationDto { Id = l.Id, Name = l.Name, District = l.District, Address = l.Address })
             .ToDictionaryAsync(l => l.Id, ct);
 
-        var shiftIds = shifts.Select(e => e.Id).ToList();
-        var participantCounts = await _db.EinsatzParticipants
+        var countsTask = _db.EinsatzParticipants
             .AsNoTracking()
             .Where(p => shiftIds.Contains(p.ShiftId))
             .GroupBy(p => p.ShiftId)
             .Select(g => new { ShiftId = g.Key, Count = g.Count() })
             .ToDictionaryAsync(g => g.ShiftId, g => g.Count, ct);
+
+        await Task.WhenAll(locationsTask, countsTask);
+
+        var locations = locationsTask.Result;
+        var participantCounts = countsTask.Result;
 
         return shifts.Select(e => new ShiftSummaryDto(
             e.Id,
