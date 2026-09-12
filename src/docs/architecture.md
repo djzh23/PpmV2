@@ -15,9 +15,9 @@ graph TD
     subgraph API ["PpmV2.Api — Controller Layer"]
       direction LR
       SHIFT_C["Shifts + Locations
-      Create · GET by ID"]
+      Create · GET list · GET by ID · workflow"]
       AUTH_C["Auth
-      POST /register · POST /login"]
+      /register · /login · /refresh · /logout"]
       ADMIN_C["Admin
       GET/PUT users · approve · role · reject"]
     end
@@ -25,9 +25,10 @@ graph TD
     subgraph APP ["PpmV2.Application — Use Cases"]
       direction LR
       SHIFT_U["Shifts Use Cases
-      CreateShift · GetShiftDetails"]
+      CreateShift · GetShiftDetails · GetShiftList"]
       AUTH_U["Auth Use Cases
-      RegisterCommand · LoginQuery · IAuthService"]
+      RegisterCommand · LoginQuery · IAuthService
+      IRefreshTokenRepository"]
       ADMIN_U["Admin Use Cases
       ApproveUser · AssignRole · GetPending · GetApproved"]
     end
@@ -39,7 +40,8 @@ graph TD
       LOC_D["Location Domain
       Location · name · district · address"]
       USER_D["User Domain
-      UserProfile · UserRole · UserStatus: Pending / Active"]
+      UserProfile · UserRole · UserStatus: Pending / Approved / Rejected
+      Auth: RefreshToken"]
     end
 
     subgraph INFRA ["PpmV2.Infrastructure"]
@@ -65,10 +67,10 @@ graph TD
     AUTH_U  -->|"applies business rules"| USER_D
     ADMIN_U -->|"applies business rules"| USER_D
 
-    SHIFT_D -->|"IRepository call (interface only)"| PERSIST
-    LOC_D   -->|"IRepository call (interface only)"| PERSIST
-    USER_D  -->|"IRepository call (interface only)"| PERSIST
-    USER_D  -->|"Identity / JWT"| AUTH_I
+    SHIFT_U -->|"IRepository call (interface only)"| PERSIST
+    AUTH_U  -->|"IRepository call (interface only)"| PERSIST
+    AUTH_U  -->|"Identity / JWT"| AUTH_I
+    ADMIN_U -->|"IRepository call (interface only)"| PERSIST
 
     PERSIST -->|"SQL query via EF Core"| DB
     AUTH_I  -->|"SQL query via EF Core"| DB
@@ -79,7 +81,7 @@ graph TD
 
 - **Controller Layer (Api):** Receives HTTP requests and delegates to handlers. No business logic here.
 - **Use Cases (Application):** Orchestrate the flow. They know the Domain but not the database. Persistence is called through interfaces only.
-- **Entities (Domain):** Pure business logic — `Shift`, `UserProfile`, `Location`. No EF Core, no HTTP, no external packages.
+- **Entities (Domain):** Pure business logic — `Shift`, `UserProfile`, `Location`, `RefreshToken`. No EF Core, no HTTP, no external packages.
 - **Infrastructure:** Implements the interfaces from Application. EF Core, Identity, and JWT live here — everything that talks to external systems.
 - **IRepository call (interface only):** The use case only knows the interface. Which concrete class is behind it is decided by the DI container in `Program.cs` at runtime — Application knows nothing about it.
 
@@ -98,7 +100,7 @@ graph TD
     APP["PpmV2.Application
     Auth · Admin · Shifts · Locations
     Commands · Queries · Handlers · DTOs
-    IShiftRepository · IAuthService"]
+    IShiftRepository · IAuthService · IRefreshTokenRepository"]
 
     INFRA["PpmV2.Infrastructure
     Auth · Identity · Admin · Persistence
@@ -108,7 +110,8 @@ graph TD
     DOMAIN["PpmV2.Domain
     Shifts: Shift · ShiftParticipant · ShiftRole · ShiftStatus
     Users: UserProfile · UserRole · UserStatus
-    Locations: Location, no external dependencies"]
+    Auth: RefreshToken
+    Locations: Location — no external dependencies"]
 
     TESTS["PpmV2.Tests
     Admin · Auth · Shifts · Infrastructure · Integration
