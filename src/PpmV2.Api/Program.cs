@@ -156,6 +156,7 @@ builder.Services.AddSingleton(TimeProvider.System);
 // Infrastructure implementations for application ports.
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 
 builder.Services.AddScoped<IUserProfileRepository, UserProfileRepository>();
 builder.Services.AddScoped<IAdminUserService, AdminUserService>();

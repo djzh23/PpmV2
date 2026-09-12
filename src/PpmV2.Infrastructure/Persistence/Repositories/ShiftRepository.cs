@@ -161,13 +161,16 @@ public sealed class ShiftRepository : IShiftRepository, IShiftDetailsQuery, IShi
             return [];
 
         var locationIds = shifts.Select(e => e.LocationId).Distinct().ToList();
+        var shiftIds = shifts.Select(e => e.Id).ToList();
+
+        // Queries 2 and 3 run sequentially: EF Core's DbContext is not thread-safe
+        // and cannot execute concurrent queries on the same instance.
         var locations = await _db.Locations
             .AsNoTracking()
             .Where(l => locationIds.Contains(l.Id))
             .Select(l => new ShiftLocationDto { Id = l.Id, Name = l.Name, District = l.District, Address = l.Address })
             .ToDictionaryAsync(l => l.Id, ct);
 
-        var shiftIds = shifts.Select(e => e.Id).ToList();
         var participantCounts = await _db.EinsatzParticipants
             .AsNoTracking()
             .Where(p => shiftIds.Contains(p.ShiftId))
