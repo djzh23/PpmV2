@@ -10,6 +10,13 @@ namespace PpmV2.Infrastructure.Admin.Seeding;
 
 public static class ShiftsSeeder
 {
+    private static readonly Guid NachtschichtId = new("11111111-0001-0000-0000-000000000000");
+    private static readonly Guid TagdienstId    = new("11111111-0002-0000-0000-000000000000");
+    private static readonly Guid WochenendId    = new("11111111-0003-0000-0000-000000000000");
+    private static readonly Guid AbendId        = new("11111111-0004-0000-0000-000000000000");
+    private static readonly Guid FruehId        = new("11111111-0005-0000-0000-000000000000");
+    private static readonly Guid AktivId        = new("11111111-0006-0000-0000-000000000000");
+
     public static async Task SeedAsync(
         AppDbContext dbContext,
         UserManager<AppUser> userManager,
@@ -24,9 +31,9 @@ public static class ShiftsSeeder
             return;
         }
 
-        if (await dbContext.Einsaetze.AnyAsync())
+        if (await dbContext.Einsaetze.AnyAsync(e => e.Id == NachtschichtId))
         {
-            logger.LogInformation("Shifts already exist. Skipping ShiftsSeeder.");
+            logger.LogInformation("Demo shifts already seeded. Skipping.");
             return;
         }
 
@@ -58,7 +65,7 @@ public static class ShiftsSeeder
             // Draft shifts — future, not yet published
             new()
             {
-                Id = Guid.NewGuid(),
+                Id = NachtschichtId,
                 Title = "Nachtschicht Elbpark",
                 Description = "Reguläre Nachtschicht mit Einlasskontrolle.",
                 StartAtUtc = now.AddDays(3).Date.AddHours(22),
@@ -73,7 +80,7 @@ public static class ShiftsSeeder
             },
             new()
             {
-                Id = Guid.NewGuid(),
+                Id = TagdienstId,
                 Title = "Tagdienst Nordlicht",
                 Description = "Unterstützung bei der Essensausgabe und Betreuung.",
                 StartAtUtc = now.AddDays(5).Date.AddHours(8),
@@ -87,7 +94,7 @@ public static class ShiftsSeeder
             },
             new()
             {
-                Id = Guid.NewGuid(),
+                Id = WochenendId,
                 Title = "Wochenendschicht Süderelbe",
                 Description = null,
                 StartAtUtc = now.AddDays(8).Date.AddHours(10),
@@ -100,7 +107,7 @@ public static class ShiftsSeeder
             // Planned shifts — published, participants assigned
             new()
             {
-                Id = Guid.NewGuid(),
+                Id = AbendId,
                 Title = "Abendbetreuung Stadtdeich",
                 Description = "Abendliche Betreuungsrunde und Sicherheitskontrolle.",
                 StartAtUtc = now.AddDays(1).Date.AddHours(18),
@@ -118,7 +125,7 @@ public static class ShiftsSeeder
             },
             new()
             {
-                Id = Guid.NewGuid(),
+                Id = FruehId,
                 Title = "Frühdienst Sonnenhof",
                 Description = "Frühschicht mit Frühstücksausgabe.",
                 StartAtUtc = now.AddDays(2).Date.AddHours(6),
@@ -138,7 +145,7 @@ public static class ShiftsSeeder
             // Active shift — currently running
             new()
             {
-                Id = Guid.NewGuid(),
+                Id = AktivId,
                 Title = "Laufende Schicht Elbbrücken",
                 Description = "Aktive Schicht — Einlasskontrolle und Betreuung.",
                 StartAtUtc = now.AddHours(-2),

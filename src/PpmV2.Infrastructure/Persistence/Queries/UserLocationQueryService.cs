@@ -52,11 +52,15 @@ public sealed class UserLocationQueryService : IUserLocationQuery
 
         var availableIds = assignedUserIds.Except(busyUserIds).ToList();
 
-        return await _db.Users
+        var rows = await _db.Users
             .AsNoTracking()
             .Where(u => availableIds.Contains(u.Id) && u.Role == UserRole.Festmitarbeiter)
             .Join(_db.UserProfiles, u => u.Id, p => p.IdentityUserId,
-                (u, p) => new StaffMemberDto(u.Id, p.Firstname, p.Lastname, u.Role.ToString()))
+                (u, p) => new { UserId = u.Id.ToString(), p.Firstname, p.Lastname, Role = u.Role.ToString() })
             .ToListAsync(ct);
+
+        return rows
+            .Select(r => new StaffMemberDto(r.UserId, r.Firstname, r.Lastname, r.Role, []))
+            .ToList();
     }
 }

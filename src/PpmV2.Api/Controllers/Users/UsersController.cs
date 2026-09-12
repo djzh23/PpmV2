@@ -16,15 +16,18 @@ public class UsersController : ControllerBase
     private readonly IUserProfileRepository _profileRepository;
     private readonly IUserLocationQuery _locationQuery;
     private readonly ICurrentUser _currentUser;
+    private readonly IStaffQuery _staffQuery;
 
     public UsersController(
         IUserProfileRepository profileRepository,
         IUserLocationQuery locationQuery,
-        ICurrentUser currentUser)
+        ICurrentUser currentUser,
+        IStaffQuery staffQuery)
     {
         _profileRepository = profileRepository;
         _locationQuery = locationQuery;
         _currentUser = currentUser;
+        _staffQuery = staffQuery;
     }
 
     /// <summary>
@@ -64,5 +67,16 @@ public class UsersController : ControllerBase
     {
         var locations = await _locationQuery.GetAssignedLocationsAsync(_currentUser.UserId, ct);
         return Ok(locations);
+    }
+
+    /// <summary>
+    /// Returns all approved staff members (Festmitarbeiter and Honorarkraft) with their location assignments.
+    /// </summary>
+    [HttpGet("staff")]
+    [Authorize(Policy = "ShiftManage")]
+    public async Task<IActionResult> GetStaff(CancellationToken ct)
+    {
+        var result = await _staffQuery.GetAllStaffAsync(ct);
+        return Ok(result);
     }
 }
