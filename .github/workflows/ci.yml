@@ -2,13 +2,28 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, feature-3/docker-seeding ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, feature-3/docker-seeding ]
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: ppmv2_test
+          POSTGRES_USER: ppmv2
+          POSTGRES_PASSWORD: ppmv2_password
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
 
     steps:
       - uses: actions/checkout@v4
@@ -26,3 +41,5 @@ jobs:
 
       - name: Test
         run: dotnet test --no-build --configuration Release --verbosity normal
+        env:
+          PPMV2_TEST_CONNECTION_STRING: Host=localhost;Port=5433;Database=ppmv2_test;Username=ppmv2;Password=ppmv2_password
