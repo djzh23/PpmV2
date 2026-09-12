@@ -24,19 +24,22 @@ public sealed class LocationQueryService : ILocationQueryService
     }
 
     /// <summary>
-    /// Returns all active locations ordered by district and name.
+    /// Returns locations ordered by district and name.
+    /// By default only active locations are returned.
+    /// Pass includeInactive=true to include deactivated locations (Coordinator/Admin only).
     /// </summary>
-    public async Task<IReadOnlyList<LocationListItemDto>> GetActiveAsync(CancellationToken ct = default)
+    public async Task<IReadOnlyList<LocationListItemDto>> GetAllAsync(bool includeInactive = false, CancellationToken ct = default)
     {
         return await _db.Locations
             .AsNoTracking()
-            .Where(l => l.IsActive)
+            .Where(l => includeInactive || l.IsActive)
             .OrderBy(l => l.District)
             .ThenBy(l => l.Name)
             .Select(l => new LocationListItemDto(
                 l.Id,
                 l.Name,
-                l.District
+                l.District,
+                l.IsActive
             ))
             .ToListAsync(ct);
     }
