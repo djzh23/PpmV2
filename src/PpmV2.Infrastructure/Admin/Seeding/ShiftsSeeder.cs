@@ -65,10 +65,10 @@ public static class ShiftsSeeder
                 EndAtUtc   = now.AddDays(4).Date.AddHours(6),
                 LocationId = locations[0].Id,
                 Status     = ShiftStatus.Draft,
-                Participants = koord1 is not null && fest1 is not null ? new List<ShiftParticipant>
+                Participants = fest1 is not null && hon1 is not null ? new List<ShiftParticipant>
                 {
-                    new() { UserId = koord1.Id, Role = ShiftRole.Leader },
-                    new() { UserId = fest1.Id,  Role = ShiftRole.Member }
+                    new() { UserId = fest1.Id, Role = ShiftRole.Leader },
+                    new() { UserId = hon1.Id,  Role = ShiftRole.Member }
                 } : new List<ShiftParticipant>()
             },
             new()
