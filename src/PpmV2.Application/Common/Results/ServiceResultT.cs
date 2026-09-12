@@ -11,15 +11,17 @@ public class ServiceResult<T> : ServiceResult
 {
     public T? Data { get; }
 
-    protected ServiceResult(bool success, T? data, string? errorMessage)
-        : base(success, errorMessage)
+    protected ServiceResult(bool success, T? data, string? errorMessage, bool isNotFound = false)
+        : base(success, errorMessage, isNotFound)
     {
         Data = data;
     }
 
-    public static ServiceResult<T> Ok(T data) =>
-        new ServiceResult<T>(true, data, null);
+    public static ServiceResult<T> Ok(T data) => new(true, data, null);
 
     public static new ServiceResult<T> Fail(string errorMessage) =>
-        new ServiceResult<T>(false, default, errorMessage);
+        new(false, default, errorMessage);
+
+    public static new ServiceResult<T> NotFound(string errorMessage) =>
+        new(false, default, errorMessage, isNotFound: true);
 }

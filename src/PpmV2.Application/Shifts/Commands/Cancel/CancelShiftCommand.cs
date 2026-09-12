@@ -20,7 +20,7 @@ public sealed class CancelShiftHandler
         var shift = await _repo.GetWithParticipantsAsync(cmd.ShiftId, ct);
 
         if (shift is null)
-            return ServiceResult.Fail("Shift not found.");
+            return ServiceResult.NotFound("Shift not found.");
 
         if (shift.Status == ShiftStatus.Completed)
             return ServiceResult.Fail("Completed shifts cannot be cancelled.");

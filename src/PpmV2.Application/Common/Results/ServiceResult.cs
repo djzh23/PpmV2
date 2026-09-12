@@ -13,16 +13,21 @@ public class ServiceResult
 {
     public bool Success { get; }
     public string? ErrorMessage { get; }
+    public bool IsNotFound { get; }
 
-    protected ServiceResult(bool success, string? errorMessage = null)
+    protected ServiceResult(bool success, string? errorMessage = null, bool isNotFound = false)
     {
         Success = success;
         ErrorMessage = errorMessage;
+        IsNotFound = isNotFound;
     }
 
-    public static ServiceResult Ok() => new ServiceResult(true);
+    public static ServiceResult Ok() => new(true);
 
     public static ServiceResult Fail(string errorMessage) =>
-        new ServiceResult(false, errorMessage);
+        new(false, errorMessage);
+
+    public static ServiceResult NotFound(string errorMessage) =>
+        new(false, errorMessage, isNotFound: true);
 }
 

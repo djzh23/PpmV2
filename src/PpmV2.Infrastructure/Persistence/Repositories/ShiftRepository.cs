@@ -181,7 +181,7 @@ public sealed class ShiftRepository : IShiftRepository, IShiftDetailsQuery, IShi
             e.Status,
             e.StartAtUtc,
             e.EndAtUtc,
-            locations[e.LocationId],
+            locations.GetValueOrDefault(e.LocationId),
             participantCounts.GetValueOrDefault(e.Id, 0)
         )).ToList();
     }

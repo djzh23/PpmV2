@@ -38,7 +38,7 @@ public sealed class ShiftWorkflowIntegrationTests(PpmV2WebApplicationFactory fac
             locationId,
             participants = new[] { new { userId = coordId, role = 0 } } // 0 = Leader
         });
-        Assert.Equal(HttpStatusCode.OK, createResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
 
         var shift = await createResponse.Content.ReadFromJsonAsync<Dictionary<string, object>>();
         var shiftId = Guid.Parse(shift!["id"].ToString()!);

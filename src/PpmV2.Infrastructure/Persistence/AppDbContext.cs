@@ -5,7 +5,6 @@ using PpmV2.Domain.Locations;
 using PpmV2.Domain.Shifts;
 using PpmV2.Domain.Users;
 using PpmV2.Infrastructure.Identity;
-using System.Reflection.Emit;
 
 namespace PpmV2.Infrastructure.Persistence;
 
@@ -56,15 +55,8 @@ public class AppDbContext : IdentityDbContext<AppUser, AppRole, Guid>
         builder.Entity<IdentityUserToken<Guid>>().ToTable("user_tokens");
         builder.Entity<IdentityRoleClaim<Guid>>().ToTable("role_claims");
 
-        // === Domain tables ===
-        builder.Entity<Location>().ToTable("locations");
-        builder.Entity<UserProfile>().ToTable("user_profiles");
-        builder.Entity<Shift>().ToTable("shifts");
-        builder.Entity<ShiftParticipant>().ToTable("shift_participants");
-        builder.Entity<UserLocationAssignment>().ToTable("user_location_assignments");
-
-
         // Automatically applies all IEntityTypeConfiguration<> mappings from this assembly.
+        // Table names for domain entities are defined there — no need to repeat them here.
         builder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
 
         //// AppUser <-> UserProfile: 1:1 relationship (Identity user owns exactly one profile record).

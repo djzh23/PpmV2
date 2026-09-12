@@ -8,6 +8,6 @@ public record ShiftSummaryDto(
     ShiftStatus Status,
     DateTime StartAtUtc,
     DateTime? EndAtUtc,
-    ShiftLocationDto Location,
+    ShiftLocationDto? Location,
     int ParticipantCount
 );

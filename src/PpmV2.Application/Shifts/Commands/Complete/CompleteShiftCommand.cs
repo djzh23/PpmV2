@@ -20,7 +20,7 @@ public sealed class CompleteShiftHandler
         var shift = await _repo.GetWithParticipantsAsync(cmd.ShiftId, ct);
 
         if (shift is null)
-            return ServiceResult.Fail("Shift not found.");
+            return ServiceResult.NotFound("Shift not found.");
 
         if (shift.Status != ShiftStatus.Active)
             return ServiceResult.Fail($"Only Active shifts can be completed. Current status: {shift.Status}.");

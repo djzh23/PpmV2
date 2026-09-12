@@ -15,7 +15,7 @@ using PpmV2.Application.Shifts.Queries.GetShiftDetails;
 using PpmV2.Application.Shifts.Queries.GetShifts;
 using PpmV2.Domain.Shifts;
 
-namespace PpmV2.Api.Controllers.Einsaetze;
+namespace PpmV2.Api.Controllers.Shifts;
 
 [ApiController]
 [Route("api/shifts")]
@@ -98,7 +98,7 @@ public class ShiftsController : ControllerBase
         if (details is null)
             return Problem("Shift was created but could not be read back.");
 
-        return Ok(details);
+        return CreatedAtAction(nameof(GetById), new { id = details.Id }, details);
     }
 
     /// <summary>
