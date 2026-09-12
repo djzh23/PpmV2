@@ -34,11 +34,11 @@ After completing the thesis, I identified clear architectural weaknesses in v1: 
 |---|---|
 | Architecture | Clean Architecture with strict dependency rule: Domain, Application, Infrastructure, Api |
 | Domain modeling | Rich domain with entities (Shift, UserProfile, Location), role enums, shift status state machine |
-| Auth | ASP.NET Core Identity with JWT Bearer and policy-based authorization (AdminOnly, ShiftManage, EinsatzCreate) |
+| Auth | ASP.NET Core Identity with JWT Bearer, refresh token rotation (single-use, DB-persisted), policy-based authorization |
 | Error handling | RFC 7807 ProblemDetails across all failure paths, ServiceResult for non-exceptional control flow |
 | Data access | EF Core with CQRS query/command separation, AsNoTracking on all read paths, optimized multi-query joins |
 | API design | RESTful controllers, CancellationToken propagation at every layer, consistent response shapes |
-| Testing | 80 tests: 57 unit tests (xUnit + Moq) + 23 integration tests (WebApplicationFactory + real PostgreSQL) |
+| Testing | 92 tests: 63 unit tests (xUnit + Moq) + 29 integration tests (WebApplicationFactory + real PostgreSQL) |
 | CI/CD | GitHub Actions pipeline: build and integration tests on every push, PostgreSQL service container |
 | Deployment | Docker multi-stage build, live on Render with Neon PostgreSQL, CORS config-driven per environment |
 
@@ -65,7 +65,8 @@ Full layer diagrams, dependency graphs, and a request flow walkthrough are in [`
 
 | Area | Status | Description |
 |---|---|---|
-| Registration and Login | ✅ | JWT token issued on login, structured errors on failure |
+| Registration and Login | ✅ | JWT access token + refresh token issued on login, structured errors on failure |
+| Refresh token rotation | ✅ | Single-use rotation: old token revoked on each refresh, logout revokes server-side |
 | User approval workflow | ✅ | New users start as Pending; admin approves or rejects |
 | Role management | ✅ | Admin assigns roles: Admin, Coordinator, Festmitarbeiter, Honorarkraft |
 | Shift lifecycle | ✅ | Full state machine: Draft, PendingApproval, Planned, Active, Completed, Cancelled |
@@ -76,7 +77,7 @@ Full layer diagrams, dependency graphs, and a request flow walkthrough are in [`
 | Validation errors | ✅ | Field-level 400 Bad Request responses via application/problem+json |
 | Demo data seeding | ✅ | Admin, demo users across all roles, and locations auto-seeded on startup |
 | Multi-database | ✅ | PostgreSQL (primary) and SQL Server supported, separate migration folders |
-| Integration tests | ✅ | 23 integration tests via WebApplicationFactory against a real PostgreSQL instance |
+| Integration tests | ✅ | 29 integration tests via WebApplicationFactory against a real PostgreSQL instance |
 | CI/CD | ✅ | GitHub Actions: build and integration tests on every push |
 
 ---
@@ -104,7 +105,9 @@ Full layer diagrams, dependency graphs, and a request flow walkthrough are in [`
 | Method | Route | Description | Auth |
 |---|---|---|---|
 | `POST` | `/api/auth/register` | Register a new user | Public |
-| `POST` | `/api/auth/login` | Login and receive JWT token | Public |
+| `POST` | `/api/auth/login` | Login and receive JWT access token + refresh token | Public |
+| `POST` | `/api/auth/refresh` | Rotate refresh token and receive new token pair | Public |
+| `POST` | `/api/auth/logout` | Revoke refresh token | Public |
 
 ### Users
 
@@ -219,6 +222,7 @@ Demo accounts (auto-seeded on startup, password: `Pass123$`):
 
 - [x] Clean Architecture, four-project layered structure
 - [x] ASP.NET Core Identity with JWT Bearer authentication
+- [x] Refresh token rotation: single-use, DB-persisted, revoked on logout
 - [x] Role-based access control with authorization policies
 - [x] User approval workflow (Pending to Approved or Rejected)
 - [x] Full shift lifecycle state machine (Draft to Completed or Cancelled)
@@ -232,7 +236,7 @@ Demo accounts (auto-seeded on startup, password: `Pass123$`):
 - [x] AsNoTracking on all read-only queries, optimized N+1-free join queries
 - [x] Config-driven CORS (per-environment, suffix matching)
 - [x] Docker Compose with database seeding
-- [x] 57 unit tests + 23 integration tests (WebApplicationFactory + real PostgreSQL)
+- [x] 63 unit tests + 29 integration tests (WebApplicationFactory + real PostgreSQL)
 - [x] GitHub Actions CI/CD (build and integration tests on every push)
 - [x] Deployed: Render, Neon PostgreSQL, Vercel
 
