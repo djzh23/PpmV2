@@ -15,7 +15,8 @@ namespace PpmV2.Tests.Integration;
 /// pre-seeded data. The only seeded account is admin@test.local (via AdminSeeder),
 /// which tests use to approve and role-assign newly registered users.
 /// </summary>
-public abstract class IntegrationTestBase : IClassFixture<PpmV2WebApplicationFactory>
+[Collection("Integration")]
+public abstract class IntegrationTestBase
 {
     private const string AdminEmail = "admin@test.local";
     private const string AdminPassword = "Pass123$";
