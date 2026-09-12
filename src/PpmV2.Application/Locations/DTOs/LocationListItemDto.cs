@@ -3,5 +3,6 @@
 public sealed record LocationListItemDto(
     Guid Id,
     string Name,
-    string District
+    string District,
+    bool IsActive
 );

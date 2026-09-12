@@ -20,7 +20,7 @@ public sealed class UserLocationQueryService : IUserLocationQuery
             .Join(_db.Locations, a => a.LocationId, l => l.Id, (a, l) => l)
             .Where(l => l.IsActive)
             .OrderBy(l => l.District).ThenBy(l => l.Name)
-            .Select(l => new LocationListItemDto(l.Id, l.Name, l.District))
+            .Select(l => new LocationListItemDto(l.Id, l.Name, l.District, l.IsActive))
             .ToListAsync(ct);
     }
 

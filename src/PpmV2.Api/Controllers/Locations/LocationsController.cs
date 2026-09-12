@@ -28,9 +28,12 @@ public class LocationsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetActive(CancellationToken ct)
+    public async Task<IActionResult> GetAll([FromQuery] bool includeInactive = false, CancellationToken ct = default)
     {
-        var locations = await _query.GetActiveAsync(ct);
+        // includeInactive is restricted to Coordinator and Admin.
+        // For all other roles the parameter is silently ignored — no 403, just active-only results.
+        var canSeeInactive = User.IsInRole("Coordinator") || User.IsInRole("Admin");
+        var locations = await _query.GetAllAsync(includeInactive && canSeeInactive, ct);
         return Ok(locations);
     }
 
