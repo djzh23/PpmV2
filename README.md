@@ -1,10 +1,11 @@
-# PpmV2 - Shift & Personnel Management API
+# PpmV2 - Shift and Personnel Management API
 
 [![.NET](https://img.shields.io/badge/.NET_10-5C2D91?style=flat-square&logo=.net&logoColor=white)](https://dotnet.microsoft.com/)
 [![ASP.NET Core](https://img.shields.io/badge/ASP.NET_Core-5C2D91?style=flat-square&logo=.net&logoColor=white)](https://docs.microsoft.com/aspnet/core/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=flat-square&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![Docker](https://img.shields.io/badge/Docker-0db7ed?style=flat-square&logo=docker&logoColor=white)](https://www.docker.com/)
 [![xUnit](https://img.shields.io/badge/xUnit-5C2D91?style=flat-square&logo=.net&logoColor=white)](https://xunit.net/)
+[![CI](https://github.com/djzh23/PpmV2/actions/workflows/ci.yml/badge.svg)](https://github.com/djzh23/PpmV2/actions/workflows/ci.yml)
 [![Live](https://img.shields.io/badge/Live-Render-46E3B7?style=flat-square&logo=render&logoColor=white)](https://ppmv2-hbb4.onrender.com)
 
 REST API for shift planning and personnel management in a volunteer association, built with .NET 10, Clean Architecture, JWT authentication, and PostgreSQL.
@@ -32,14 +33,14 @@ After completing the thesis, I identified clear architectural weaknesses in v1: 
 | Area | Detail |
 |---|---|
 | Architecture | Clean Architecture with strict dependency rule: Domain, Application, Infrastructure, Api |
-| Domain modeling | Rich domain with entities (Shift, UserProfile, Location), role enums, status state machines |
-| Auth | ASP.NET Core Identity with JWT Bearer and role-based authorization policies |
-| Error handling | RFC 7807 ProblemDetails across all failure paths, structured validation errors, global middleware |
-| Data access | EF Core with repository and query separation, AsNoTracking on all read paths, multi-DB support |
+| Domain modeling | Rich domain with entities (Shift, UserProfile, Location), role enums, shift status state machine |
+| Auth | ASP.NET Core Identity with JWT Bearer and policy-based authorization (AdminOnly, ShiftManage, EinsatzCreate) |
+| Error handling | RFC 7807 ProblemDetails across all failure paths, ServiceResult for non-exceptional control flow |
+| Data access | EF Core with CQRS query/command separation, AsNoTracking on all read paths, optimized multi-query joins |
 | API design | RESTful controllers, CancellationToken propagation at every layer, consistent response shapes |
-| Testing | 57 unit tests (xUnit + Moq), repository tests with EF InMemory, middleware tests |
+| Testing | 80 tests: 57 unit tests (xUnit + Moq) + 23 integration tests (WebApplicationFactory + real PostgreSQL) |
+| CI/CD | GitHub Actions pipeline: build and integration tests on every push, PostgreSQL service container |
 | Deployment | Docker multi-stage build, live on Render with Neon PostgreSQL, CORS config-driven per environment |
-| Observability | Structured logging, environment-specific configuration, DB seeding on startup |
 
 ---
 
@@ -67,12 +68,16 @@ Full layer diagrams, dependency graphs, and a request flow walkthrough are in [`
 | Registration and Login | ✅ | JWT token issued on login, structured errors on failure |
 | User approval workflow | ✅ | New users start as Pending; admin approves or rejects |
 | Role management | ✅ | Admin assigns roles: Admin, Coordinator, Festmitarbeiter, Honorarkraft |
-| Shift creation | ✅ | Coordinators create shifts with location, time window, and participant list |
-| Shift details | ✅ | Full shift view with readiness check and missing requirements |
-| Location management | ✅ | Active locations seeded and queryable |
+| Shift lifecycle | ✅ | Full state machine: Draft, PendingApproval, Planned, Active, Completed, Cancelled |
+| Shift details | ✅ | Full shift view with participants, location, and readiness check |
+| Participant response | ✅ | Festmitarbeiter accept or decline shift invitations |
+| Location management | ✅ | Full CRUD: create, read, update, soft-deactivate, reactivate |
+| Available staff query | ✅ | Query Festmitarbeiter available at a location on a given date |
 | Validation errors | ✅ | Field-level 400 Bad Request responses via application/problem+json |
 | Demo data seeding | ✅ | Admin, demo users across all roles, and locations auto-seeded on startup |
 | Multi-database | ✅ | PostgreSQL (primary) and SQL Server supported, separate migration folders |
+| Integration tests | ✅ | 23 integration tests via WebApplicationFactory against a real PostgreSQL instance |
+| CI/CD | ✅ | GitHub Actions: build and integration tests on every push |
 
 ---
 
@@ -86,7 +91,7 @@ Full layer diagrams, dependency graphs, and a request flow walkthrough are in [`
 | ORM | Entity Framework Core 10 |
 | Database | PostgreSQL (primary), SQL Server (supported) |
 | Containerization | Docker + Docker Compose |
-| Testing | xUnit v2 + Moq + coverlet |
+| Testing | xUnit v2 + Moq + WebApplicationFactory |
 | Architecture | Clean Architecture |
 | Deployment | Render (API), Neon (PostgreSQL), Vercel (frontend) |
 
@@ -94,14 +99,49 @@ Full layer diagrams, dependency graphs, and a request flow walkthrough are in [`
 
 ## API Endpoints
 
+### Auth
+
 | Method | Route | Description | Auth |
 |---|---|---|---|
 | `POST` | `/api/auth/register` | Register a new user | Public |
 | `POST` | `/api/auth/login` | Login and receive JWT token | Public |
-| `GET` | `/api/users/me` | Get own profile (firstname, lastname, email, role, status) | Bearer |
-| `GET` | `/api/locations` | List active locations | Bearer |
-| `GET` | `/api/shifts/{id}` | Get shift by ID | Bearer |
-| `POST` | `/api/shifts` | Create a shift (Draft) | Coordinator / Festmitarbeiter |
+
+### Users
+
+| Method | Route | Description | Auth |
+|---|---|---|---|
+| `GET` | `/api/users/me` | Get own profile | Bearer |
+| `GET` | `/api/users/me/locations` | Get locations assigned to the current Festmitarbeiter | Bearer |
+
+### Locations
+
+| Method | Route | Description | Auth |
+|---|---|---|---|
+| `GET` | `/api/locations` | List locations (`?includeInactive=true` for Coordinator/Admin) | Bearer |
+| `GET` | `/api/locations/{id}` | Get location detail | Bearer |
+| `POST` | `/api/locations` | Create a location | Coordinator / Admin |
+| `PUT` | `/api/locations/{id}` | Update a location (set `isActive: false` to deactivate, `true` to reactivate) | Coordinator / Admin |
+| `DELETE` | `/api/locations/{id}` | Soft-deactivate a location | Coordinator / Admin |
+| `GET` | `/api/locations/{id}/available-staff` | List Festmitarbeiter available at a location on a given date (`?date=YYYY-MM-DD`) | Bearer |
+
+### Shifts
+
+| Method | Route | Description | Auth |
+|---|---|---|---|
+| `GET` | `/api/shifts` | List shifts (Festmitarbeiter see only their own, `?status=` filter supported) | Bearer |
+| `GET` | `/api/shifts/{id}` | Get shift detail with participants and readiness check | Bearer |
+| `POST` | `/api/shifts` | Create a shift in Draft status | Coordinator / Festmitarbeiter |
+| `PUT` | `/api/shifts/{id}/propose` | Propose a team (Draft to PendingApproval) | Coordinator / Festmitarbeiter |
+| `PUT` | `/api/shifts/{id}/approve` | Approve a shift (PendingApproval or Draft to Planned) | Coordinator / Admin |
+| `PUT` | `/api/shifts/{id}/start` | Start a shift (Planned to Active) | Coordinator / Admin |
+| `PUT` | `/api/shifts/{id}/complete` | Complete a shift (Active to Completed) | Coordinator / Admin |
+| `PUT` | `/api/shifts/{id}/cancel` | Cancel a shift | Coordinator / Admin |
+| `PUT` | `/api/shifts/{id}/respond` | Accept or decline a shift invitation | Bearer |
+
+### Admin
+
+| Method | Route | Description | Auth |
+|---|---|---|---|
 | `GET` | `/api/admin/users/pending` | List pending users | Admin |
 | `GET` | `/api/admin/users/approved` | List approved users | Admin |
 | `GET` | `/api/admin/users/rejected` | List rejected users | Admin |
@@ -117,8 +157,7 @@ Error responses follow RFC 7807 (`application/problem+json`):
   "title": "VALIDATION_ERROR",
   "detail": "One or more fields are invalid.",
   "errors": {
-    "email": ["Email is required."],
-    "password": ["Password must be at least 6 characters."]
+    "email": ["Email is required."]
   }
 }
 ```
@@ -139,7 +178,7 @@ docker-compose up -d
 ### Local Development
 
 ```bash
-docker-compose up -d db
+docker-compose up -d postgres
 dotnet ef database update --project src/PpmV2.Infrastructure --startup-project src/PpmV2.Api
 dotnet run --project src/PpmV2.Api
 # API: http://localhost:5105
@@ -147,11 +186,23 @@ dotnet run --project src/PpmV2.Api
 
 ### Tests
 
+Unit tests (no database required):
+```bash
+dotnet test --filter "FullyQualifiedName~Unit"
+```
+
+Integration tests (requires docker-compose postgres running):
+```bash
+docker-compose up -d postgres
+dotnet test --filter "FullyQualifiedName~Integration"
+```
+
+All tests:
 ```bash
 dotnet test
 ```
 
-Test users (auto-seeded, password: `Pass123$`):
+Demo accounts (auto-seeded on startup, password: `Pass123$`):
 
 | Email | Role |
 |---|---|
@@ -170,26 +221,29 @@ Test users (auto-seeded, password: `Pass123$`):
 - [x] ASP.NET Core Identity with JWT Bearer authentication
 - [x] Role-based access control with authorization policies
 - [x] User approval workflow (Pending to Approved or Rejected)
-- [x] Shift creation with participant and location management
+- [x] Full shift lifecycle state machine (Draft to Completed or Cancelled)
+- [x] Location management with full CRUD and soft-delete
+- [x] Participant response workflow (accept or decline)
 - [x] RFC 7807 ProblemDetails error responses across all failure paths
-- [x] Repository pattern with interface segregation (Application / Infrastructure)
+- [x] ServiceResult pattern: no exceptions for expected business failures
+- [x] Repository and query service separation (CQRS read/write split)
 - [x] EF Core with multi-database support (PostgreSQL and SQL Server)
 - [x] CancellationToken propagation at every layer
-- [x] AsNoTracking on all read-only queries
+- [x] AsNoTracking on all read-only queries, optimized N+1-free join queries
 - [x] Config-driven CORS (per-environment, suffix matching)
 - [x] Docker Compose with database seeding
-- [x] 57 unit tests (xUnit + Moq)
+- [x] 57 unit tests + 23 integration tests (WebApplicationFactory + real PostgreSQL)
+- [x] GitHub Actions CI/CD (build and integration tests on every push)
 - [x] Deployed: Render, Neon PostgreSQL, Vercel
 
 ### Planned
 
-- [ ] GitHub Actions CI/CD pipeline (build and test on PR)
-- [ ] Integration tests with WebApplicationFactory and Testcontainers
-- [ ] Shift publication workflow (Draft to Published)
+- [ ] Pagination on list endpoints (shifts, users)
 - [ ] Shift assignment notifications
 - [ ] Calendar and schedule view endpoint
 - [ ] PDF shift reports export
 - [ ] Audit log (who approved whom and when)
+- [ ] Location photo gallery (multi-image upload with cover selection)
 
 ---
 
@@ -199,7 +253,7 @@ The API is intentionally frontend-agnostic. Any HTTP client can consume it.
 
 The next planned client is a **MAUI Blazor Hybrid** app, a single codebase targeting Android, iOS, Windows, and macOS. This would replace the original MAUI/XAML client from the thesis and give all association members real cross-platform access.
 
-This also reflects a key architectural decision: by keeping the backend a stable, well-documented REST API, the frontend technology can evolve independently. From the original MAUI mobile client, to the current Next.js web app, to a future hybrid app.
+This reflects a key architectural decision: by keeping the backend a stable, well-documented REST API, the frontend technology can evolve independently. From the original MAUI mobile client, to the current Next.js web app, to a future hybrid app.
 
 ---
 
@@ -210,4 +264,3 @@ This also reflects a key architectural decision: by keeping the backend a stable
 | [ppmv2-next-frontend](https://github.com/djzh23/ppmv2-next-frontend) | Next.js 15 + shadcn/ui frontend for this API |
 | [apiproject](https://github.com/djzh23/apiproject) | PPM v1, original Laravel backend from the Bachelor's thesis |
 | [frontendproject](https://github.com/djzh23/frontendproject) | PPM v1, .NET MAUI mobile client from the Bachelor's thesis |
-

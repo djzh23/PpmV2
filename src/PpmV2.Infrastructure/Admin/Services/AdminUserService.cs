@@ -101,8 +101,9 @@ public class AdminUserService : IAdminUserService
 
     private async Task<List<UserAdminListDto>> GetUsersByStatusAsync(UserStatus status, CancellationToken ct)
     {
+        // No Include needed: the Select projection accesses u.Profile inline,
+        // which EF Core translates to a LEFT JOIN without a separate Include call.
         return await _userManager.Users
-            .Include(u => u.Profile)
             .Where(u => u.Status == status)
             .Select(u => new UserAdminListDto(
                 u.Id,

@@ -56,14 +56,19 @@ public class AppDbContext : IdentityDbContext<AppUser, AppRole, Guid>
         builder.Entity<IdentityRoleClaim<Guid>>().ToTable("role_claims");
 
         // Automatically applies all IEntityTypeConfiguration<> mappings from this assembly.
-        // Table names for domain entities are defined there — no need to repeat them here.
+        // Table names for domain entities are defined there, no need to repeat them here.
         builder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
 
-        //// AppUser <-> UserProfile: 1:1 relationship (Identity user owns exactly one profile record).
+        // AppUser <-> UserProfile: 1:1 relationship (Identity user owns exactly one profile record).
         builder.Entity<AppUser>()
-        .HasOne(u => u.Profile)
-        .WithOne()
-        .HasForeignKey<UserProfile>(p => p.IdentityUserId)
-        .OnDelete(DeleteBehavior.Cascade);
+            .HasOne(u => u.Profile)
+            .WithOne()
+            .HasForeignKey<UserProfile>(p => p.IdentityUserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Indexes on AppUser columns used in admin queries and staff availability filters.
+        // AppUser has no IEntityTypeConfiguration, so these are defined here.
+        builder.Entity<AppUser>().HasIndex(u => u.Status);
+        builder.Entity<AppUser>().HasIndex(u => u.Role);
     }
 }
