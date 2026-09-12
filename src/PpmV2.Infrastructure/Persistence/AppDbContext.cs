@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using PpmV2.Domain.Auth;
 using PpmV2.Domain.Locations;
 using PpmV2.Domain.Shifts;
 using PpmV2.Domain.Users;
@@ -40,6 +41,9 @@ public class AppDbContext : IdentityDbContext<AppUser, AppRole, Guid>
 
     /// <summary>Location assignments defining a Festmitarbeiter's regular work profile.</summary>
     public DbSet<UserLocationAssignment> UserLocationAssignments => Set<UserLocationAssignment>();
+
+    /// <summary>Refresh tokens for JWT token rotation.</summary>
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

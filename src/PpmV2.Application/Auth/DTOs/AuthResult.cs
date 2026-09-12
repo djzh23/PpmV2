@@ -11,16 +11,18 @@ public sealed class AuthResult
     public Dictionary<string, string[]>? Errors { get; set; }
 
     public string? Token { get; set; }
+    public string? RefreshToken { get; set; }
     public Guid? UserId { get; set; }
     public string? Email { get; set; }
 
-    public static AuthResult Ok(Guid userId, string email, string? token = null)
+    public static AuthResult Ok(Guid userId, string email, string? token = null, string? refreshToken = null)
         => new()
         {
             Success = true,
             UserId = userId,
             Email = email,
             Token = token,
+            RefreshToken = refreshToken,
             ErrorCode = AuthErrorCode.None
         };
 
