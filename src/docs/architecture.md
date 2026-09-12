@@ -111,8 +111,8 @@ graph TD
     Locations: Location, no external dependencies"]
 
     TESTS["PpmV2.Tests
-    Admin · Auth · Shifts · Infrastructure
-    xUnit · Moq · EF InMemory"]
+    Admin · Auth · Shifts · Infrastructure · Integration
+    xUnit · Moq · WebApplicationFactory"]
 
     API   -->|"ProjectReference"| APP
     API   -->|"ProjectReference (DI root only)"| INFRA
@@ -183,4 +183,4 @@ sequenceDiagram
 | `PpmV2.Application` | Use cases, interfaces, DTOs | None |
 | `PpmV2.Infrastructure` | EF Core, Identity, JWT, Migrations | EF Core, Npgsql, Identity |
 | `PpmV2.Api` | Controllers, middleware, DI root | JwtBearer, OpenApi |
-| `PpmV2.Tests` | Unit tests | xUnit, Moq, EF InMemory |
+| `PpmV2.Tests` | Unit and integration tests | xUnit, Moq, WebApplicationFactory, real PostgreSQL |

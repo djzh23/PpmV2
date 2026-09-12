@@ -191,7 +191,7 @@ dotnet run --project src/PpmV2.Api
 
 Unit tests (no database required):
 ```bash
-dotnet test --filter "FullyQualifiedName~Unit"
+dotnet test --filter "FullyQualifiedName!~Integration"
 ```
 
 Integration tests (requires docker-compose postgres running):
