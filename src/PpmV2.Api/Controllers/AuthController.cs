@@ -2,6 +2,7 @@
 using PpmV2.Api.Common;
 using PpmV2.Application.Auth.DTOs;
 using PpmV2.Application.Auth.Interfaces;
+using PpmV2.Application.Common.Results;
 
 namespace PpmV2.Api.Controllers;
 
@@ -49,8 +50,37 @@ public class AuthController : ControllerBase
         return Ok(new
         {
             token = result.Token,
+            refreshToken = result.RefreshToken,
             userId = result.UserId,
             email = result.Email
         });
+    }
+
+    [HttpPost("refresh")]
+    public async Task<IActionResult> Refresh([FromBody] RefreshRequest request, CancellationToken ct)
+    {
+        var result = await _auth.RefreshAsync(request, ct);
+
+        if (!result.Success)
+            return ApiProblem.From(result.ToAppError(), HttpContext);
+
+        return Ok(new
+        {
+            token = result.Token,
+            refreshToken = result.RefreshToken,
+            userId = result.UserId,
+            email = result.Email
+        });
+    }
+
+    [HttpPost("logout")]
+    public async Task<IActionResult> Logout([FromBody] RefreshRequest request, CancellationToken ct)
+    {
+        var result = await _auth.LogoutAsync(request.RefreshToken, ct);
+
+        if (!result.Success)
+            return ApiProblem.From(result.ToAppError(), HttpContext);
+
+        return NoContent();
     }
 }
