@@ -24,7 +24,7 @@ public sealed class RespondToShiftHandler
         var shift = await _repo.GetWithParticipantsAsync(cmd.ShiftId, ct);
 
         if (shift is null)
-            return ServiceResult.Fail("Shift not found.");
+            return ServiceResult.NotFound("Shift not found.");
 
         if (shift.Status != ShiftStatus.PendingApproval)
             return ServiceResult.Fail("Can only respond to shifts in PendingApproval status.");

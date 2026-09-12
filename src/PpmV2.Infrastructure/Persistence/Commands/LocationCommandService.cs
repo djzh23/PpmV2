@@ -55,7 +55,7 @@ public sealed class LocationCommandService : ILocationCommandService
         var location = await _db.Locations.FindAsync([id], ct);
 
         if (location is null)
-            return ServiceResult<LocationDetailDto>.Fail("Location not found.");
+            return ServiceResult<LocationDetailDto>.NotFound("Location not found.");
 
         var duplicate = await _db.Locations
             .AsNoTracking()
@@ -86,7 +86,7 @@ public sealed class LocationCommandService : ILocationCommandService
         var location = await _db.Locations.FindAsync([id], ct);
 
         if (location is null)
-            return ServiceResult.Fail("Location not found.");
+            return ServiceResult.NotFound("Location not found.");
 
         location.IsActive = false;
         location.UpdatedAt = _time.GetUtcNow().UtcDateTime;

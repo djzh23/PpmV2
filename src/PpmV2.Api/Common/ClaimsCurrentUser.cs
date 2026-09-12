@@ -10,22 +10,25 @@ namespace PpmV2.Api.Common;
 /// </summary>
 public sealed class ClaimsCurrentUser : ICurrentUser
 {
-    public Guid UserId { get; }
+    private readonly IHttpContextAccessor _accessor;
 
-    private readonly ClaimsPrincipal _principal;
+    public ClaimsCurrentUser(IHttpContextAccessor accessor) => _accessor = accessor;
 
-    public ClaimsCurrentUser(IHttpContextAccessor accessor)
+    // Lazy property: resolved on first access, never in the constructor.
+    // Reason: ASP.NET Core constructs the controller (and resolves DI) before [Authorize]
+    // filters run. Throwing in the constructor would produce 500 instead of 401 for
+    // unauthenticated requests. [Authorize] ensures UserId is only read on authenticated calls.
+    public Guid UserId
     {
-        var user = accessor.HttpContext?.User
-            ?? throw new InvalidOperationException("No active HTTP context.");
-
-        var sub = user.FindFirstValue(JwtRegisteredClaimNames.Sub)
-               ?? user.FindFirstValue(ClaimTypes.NameIdentifier)
-               ?? throw new InvalidOperationException("UserId claim not found.");
-
-        UserId = Guid.Parse(sub);
-        _principal = user;
+        get
+        {
+            var user = _accessor.HttpContext?.User;
+            var sub = user?.FindFirstValue(JwtRegisteredClaimNames.Sub)
+                   ?? user?.FindFirstValue(ClaimTypes.NameIdentifier);
+            return sub is not null ? Guid.Parse(sub) : Guid.Empty;
+        }
     }
 
-    public bool IsInRole(string role) => _principal.IsInRole(role);
+    public bool IsInRole(string role) =>
+        _accessor.HttpContext?.User.IsInRole(role) ?? false;
 }

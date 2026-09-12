@@ -57,7 +57,7 @@ public class AdminUsersController : ControllerBase
         if (!result.Success)
             return ApiProblem.From(result.ToAppError(), HttpContext);
 
-        return Ok(new { message = "User approved successfully." });
+        return NoContent();
     }
 
     [HttpPut("reject/{id:guid}")]
@@ -68,7 +68,7 @@ public class AdminUsersController : ControllerBase
         if (!result.Success)
             return ApiProblem.From(result.ToAppError(), HttpContext);
 
-        return Ok(new { message = "User rejected successfully." });
+        return NoContent();
     }
 
     [HttpPut("{id:guid}/role")]
@@ -88,6 +88,6 @@ public class AdminUsersController : ControllerBase
         if (!result.Success)
             return ApiProblem.From(result.ToAppError(), HttpContext);
 
-        return Ok(new { message = "User role updated successfully." });
+        return NoContent();
     }
 }

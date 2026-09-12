@@ -45,7 +45,7 @@ public class AdminUserService : IAdminUserService
 
         if(user == null)
         {
-            return ServiceResult.Fail("User not found.");
+            return ServiceResult.NotFound("User not found.");
         }
 
         if(user.Status == UserStatus.Approved)
@@ -77,7 +77,7 @@ public class AdminUserService : IAdminUserService
         var user = await _userManager.FindByIdAsync(userId.ToString());
         if(user == null)
         {
-            return ServiceResult.Fail("User not found.");
+            return ServiceResult.NotFound("User not found.");
         }
         if(user.Status == UserStatus.Rejected)
         {
@@ -128,7 +128,7 @@ public class AdminUserService : IAdminUserService
     {
         var user = await _userManager.Users.FirstOrDefaultAsync(u => u.Id == userId, ct);
         if (user == null)
-            return ServiceResult.Fail("User not found");
+            return ServiceResult.NotFound("User not found");
 
         if (user.Status != UserStatus.Approved)
             return ServiceResult.Fail("Role can only be changed for approved users");

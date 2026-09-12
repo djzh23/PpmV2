@@ -21,10 +21,15 @@ public sealed class ProposeShiftTeamHandler
         var shift = await _repo.GetWithParticipantsAsync(cmd.ShiftId, ct);
 
         if (shift is null)
-            return ServiceResult.Fail("Shift not found.");
+            return ServiceResult.NotFound("Shift not found.");
 
         if (shift.Status != ShiftStatus.Draft)
             return ServiceResult.Fail($"Only Draft shifts can be proposed. Current status: {shift.Status}.");
+
+        // Only the assigned Leader may propose — prevents any Festmitarbeiter who knows
+        // the shift ID from advancing the status without being part of the team.
+        if (!shift.Participants.Any(p => p.UserId == cmd.ProposerId && p.Role == ShiftRole.Leader))
+            return ServiceResult.Fail("Only the assigned leader can propose a shift.");
 
         shift.Status = ShiftStatus.PendingApproval;
 

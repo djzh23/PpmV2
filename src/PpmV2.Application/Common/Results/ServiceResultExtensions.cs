@@ -8,11 +8,8 @@ public static class ServiceResultExtensions
     {
         var message = result.ErrorMessage ?? "An error occurred.";
 
-        var httpStatus = message.Contains("not found", StringComparison.OrdinalIgnoreCase)
-            ? 404
-            : 400;
-
-        var code = httpStatus == 404 ? "NOT_FOUND" : "BAD_REQUEST";
+        var httpStatus = result.IsNotFound ? 404 : 400;
+        var code = result.IsNotFound ? "NOT_FOUND" : "BAD_REQUEST";
 
         return new AppError(code, message, httpStatus);
     }

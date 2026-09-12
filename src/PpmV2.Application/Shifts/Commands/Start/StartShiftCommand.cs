@@ -20,7 +20,7 @@ public sealed class StartShiftHandler
         var shift = await _repo.GetWithParticipantsAsync(cmd.ShiftId, ct);
 
         if (shift is null)
-            return ServiceResult.Fail("Shift not found.");
+            return ServiceResult.NotFound("Shift not found.");
 
         if (shift.Status != ShiftStatus.Planned)
             return ServiceResult.Fail($"Only Planned shifts can be started. Current status: {shift.Status}.");

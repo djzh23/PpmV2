@@ -20,7 +20,7 @@ public sealed class ApproveShiftHandler
         var shift = await _repo.GetWithParticipantsAsync(cmd.ShiftId, ct);
 
         if (shift is null)
-            return ServiceResult.Fail("Shift not found.");
+            return ServiceResult.NotFound("Shift not found.");
 
         if (shift.Status is not (ShiftStatus.Draft or ShiftStatus.PendingApproval))
             return ServiceResult.Fail($"Only Draft or PendingApproval shifts can be approved. Current status: {shift.Status}.");

@@ -6,7 +6,7 @@ using PpmV2.Application.Auth.Interfaces;
 namespace PpmV2.Api.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/auth")]
 /// <summary>
 /// Public authentication endpoints (register/login).
 /// </summary>
