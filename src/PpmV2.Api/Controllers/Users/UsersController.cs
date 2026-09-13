@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PpmV2.Api.Common;
+using PpmV2.Application.Common.Results;
 using PpmV2.Application.Shifts.Interfaces;
 using PpmV2.Application.Users.DTOs;
 using PpmV2.Application.Users.Interfaces;
@@ -15,17 +17,20 @@ public class UsersController : ControllerBase
 {
     private readonly IUserProfileRepository _profileRepository;
     private readonly IUserLocationQuery _locationQuery;
+    private readonly IUserLocationCommand _locationCommand;
     private readonly ICurrentUser _currentUser;
     private readonly IStaffQuery _staffQuery;
 
     public UsersController(
         IUserProfileRepository profileRepository,
         IUserLocationQuery locationQuery,
+        IUserLocationCommand locationCommand,
         ICurrentUser currentUser,
         IStaffQuery staffQuery)
     {
         _profileRepository = profileRepository;
         _locationQuery = locationQuery;
+        _locationCommand = locationCommand;
         _currentUser = currentUser;
         _staffQuery = staffQuery;
     }
@@ -78,5 +83,23 @@ public class UsersController : ControllerBase
     {
         var result = await _staffQuery.GetAllStaffAsync(ct);
         return Ok(result);
+    }
+
+    /// <summary>
+    /// Updates the location assignments for a Festmitarbeiter or Honorarkraft.
+    /// </summary>
+    [HttpPut("{userId:guid}/locations")]
+    [Authorize(Policy = "ShiftManage")]
+    public async Task<IActionResult> UpdateUserLocations(
+        Guid userId,
+        [FromBody] UpdateUserLocationsRequest request,
+        CancellationToken ct)
+    {
+        var result = await _locationCommand.UpdateLocationsAsync(userId, request.LocationIds, ct);
+
+        if (!result.Success)
+            return ApiProblem.From(result.ToAppError(), HttpContext);
+
+        return NoContent();
     }
 }

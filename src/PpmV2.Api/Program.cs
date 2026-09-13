@@ -7,6 +7,7 @@ using PpmV2.Api.Middleware;
 using PpmV2.Application.Admin.Interfaces;
 using PpmV2.Application.Auth.Interfaces;
 using PpmV2.Application.Locations.Interfaces;
+using PpmV2.Application.Shifts.Commands.AddParticipant;
 using PpmV2.Api.Common;
 using PpmV2.Infrastructure.Persistence.Commands;
 using PpmV2.Application.Shifts.Commands.Approve;
@@ -169,8 +170,9 @@ builder.Services.AddScoped<IShiftDetailsQuery, ShiftRepository>();
 builder.Services.AddScoped<IShiftListQuery, ShiftRepository>();
 builder.Services.AddScoped<IShiftWorkflowRepository, ShiftRepository>();
 
-// User location query
+// User location query + command
 builder.Services.AddScoped<IUserLocationQuery, UserLocationQueryService>();
+builder.Services.AddScoped<IUserLocationCommand, UserLocationCommandService>();
 
 // Staff overview query
 builder.Services.AddScoped<IStaffQuery, StaffQueryService>();
@@ -189,6 +191,7 @@ builder.Services.AddScoped<CancelShiftHandler>();
 builder.Services.AddScoped<RespondToShiftHandler>();
 builder.Services.AddScoped<StartShiftHandler>();
 builder.Services.AddScoped<CompleteShiftHandler>();
+builder.Services.AddScoped<AddParticipantHandler>();
 
 
 // --- CORS ---
