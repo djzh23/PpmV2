@@ -172,6 +172,9 @@ builder.Services.AddScoped<IShiftWorkflowRepository, ShiftRepository>();
 // User location query
 builder.Services.AddScoped<IUserLocationQuery, UserLocationQueryService>();
 
+// Staff overview query
+builder.Services.AddScoped<IStaffQuery, StaffQueryService>();
+
 // Current user context (HTTP claims)
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, ClaimsCurrentUser>();
