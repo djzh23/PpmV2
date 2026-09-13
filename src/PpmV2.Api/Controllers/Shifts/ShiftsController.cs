@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PpmV2.Api.Common;
 using PpmV2.Application.Common.Results;
+using PpmV2.Application.Shifts.Commands.AddParticipant;
 using PpmV2.Application.Shifts.Commands.Approve;
 using PpmV2.Application.Shifts.Commands.Cancel;
 using PpmV2.Application.Shifts.Commands.Complete;
@@ -14,6 +15,7 @@ using PpmV2.Application.Shifts.Interfaces;
 using PpmV2.Application.Shifts.Queries.GetShiftDetails;
 using PpmV2.Application.Shifts.Queries.GetShifts;
 using PpmV2.Domain.Shifts;
+using PpmV2.Domain.Users;
 
 namespace PpmV2.Api.Controllers.Shifts;
 
@@ -30,6 +32,7 @@ public class ShiftsController : ControllerBase
     private readonly RespondToShiftHandler _respond;
     private readonly StartShiftHandler _start;
     private readonly CompleteShiftHandler _complete;
+    private readonly AddParticipantHandler _addParticipant;
     private readonly ICurrentUser _currentUser;
     private readonly TimeProvider _time;
 
@@ -43,6 +46,7 @@ public class ShiftsController : ControllerBase
         RespondToShiftHandler respond,
         StartShiftHandler start,
         CompleteShiftHandler complete,
+        AddParticipantHandler addParticipant,
         ICurrentUser currentUser,
         TimeProvider time)
     {
@@ -55,6 +59,7 @@ public class ShiftsController : ControllerBase
         _respond = respond;
         _start = start;
         _complete = complete;
+        _addParticipant = addParticipant;
         _currentUser = currentUser;
         _time = time;
     }
@@ -133,13 +138,40 @@ public class ShiftsController : ControllerBase
     }
 
     /// <summary>
-    /// Coordinator cancels a shift.
+    /// Cancels a shift. Coordinator/Admin may cancel any non-completed shift.
+    /// Festmitarbeiter/Honorarkraft who are the shift leader may cancel Draft or PendingApproval shifts.
     /// </summary>
     [HttpPut("{id:guid}/cancel")]
-    [Authorize(Policy = "ShiftManage")]
+    [Authorize]
     public async Task<IActionResult> Cancel(Guid id, CancellationToken ct)
     {
-        var result = await _cancel.Handle(new CancelShiftCommand(id), ct);
+        var isPrivileged = _currentUser.IsInRole(UserRole.Coordinator.ToString())
+                        || _currentUser.IsInRole(UserRole.Admin.ToString());
+
+        // Non-privileged callers pass their ID so the handler can verify they are the leader
+        Guid? requesterId = isPrivileged ? null : _currentUser.UserId;
+
+        var result = await _cancel.Handle(new CancelShiftCommand(id, requesterId), ct);
+
+        if (!result.Success)
+            return ApiProblem.From(result.ToAppError(), HttpContext);
+
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Shift leader adds a new participant to a Draft or PendingApproval shift.
+    /// </summary>
+    [HttpPost("{id:guid}/participants")]
+    [Authorize]
+    public async Task<IActionResult> AddParticipant(
+        Guid id,
+        [FromBody] AddParticipantRequest request,
+        CancellationToken ct)
+    {
+        var result = await _addParticipant.Handle(
+            new AddParticipantCommand(id, _currentUser.UserId, request.UserId, request.Role),
+            ct);
 
         if (!result.Success)
             return ApiProblem.From(result.ToAppError(), HttpContext);
@@ -206,3 +238,5 @@ public class ShiftsController : ControllerBase
 }
 
 public sealed record RespondRequest(ParticipantConfirmationStatus Response);
+
+public sealed record AddParticipantRequest(Guid UserId, ShiftRole Role);
