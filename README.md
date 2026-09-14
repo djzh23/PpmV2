@@ -91,32 +91,32 @@ Any status can transition to `Cancelled` by the Coordinator or assigned Leader.
 
 1. **Coordinator creates a shift** with a title, time window, location, and assigns a Festmitarbeiter as Leader. The shift starts in `Draft` status. The Coordinator can also assign themselves as Leader.
 
-2. **Leader takes ownership** — the Leader sees the Draft shift in their Leader Inbox. They can:
+2. **Leader takes ownership:** the Leader sees the Draft shift in their Leader Inbox. They can:
    - Add team members (Festmitarbeiter, Honorarkraft) from available staff
    - Remove team members
    - Accept or decline their own participation on the shift
    - Propose the team when ready
 
-3. **Leader proposes** (`PUT /api/shifts/{id}/propose`) — the shift moves to `PendingApproval`. All non-leader participants are set to `Invited`.
+3. **Leader proposes** (`PUT /api/shifts/{id}/propose`): the shift moves to `PendingApproval`. All non-leader participants are set to `Invited`.
 
-4. **Team members respond** — each invited member sees the shift in their inbox with Accept/Decline options (`PUT /api/shifts/{id}/respond`). Members can optionally provide a reason when declining.
+4. **Team members respond:** each invited member sees the shift in their inbox with Accept/Decline options (`PUT /api/shifts/{id}/respond`). Members can optionally provide a reason when declining.
 
-5. **Auto-transition to Planned** — once all participants have accepted, the shift automatically transitions to `Planned`. The Coordinator is informed the team is assembled and ready.
+5. **Auto-transition to Planned:** once all participants have accepted, the shift automatically transitions to `Planned`. The Coordinator is informed the team is assembled and ready.
 
-6. **Coordinator starts the shift** (`PUT /api/shifts/{id}/start`) — moves from `Planned` to `Active` when the event begins.
+6. **Coordinator starts the shift** (`PUT /api/shifts/{id}/start`): moves from `Planned` to `Active` when the event begins.
 
-7. **Shift completed** (`PUT /api/shifts/{id}/complete`) — Coordinator marks the shift as `Completed` after it ends.
+7. **Shift completed** (`PUT /api/shifts/{id}/complete`): Coordinator marks the shift as `Completed` after it ends.
 
 ### What Is Pending / To Be Improved
 
 The following items are planned but not yet implemented:
 
-- **Leader can remove participants** — currently only add is supported; remove endpoint is missing
-- **Decline with reason** — when a member declines, they should be able to provide a written reason visible to the Leader and Coordinator
-- **Coordinator flow refinement** — the Coordinator shift detail view needs clearer status transitions and action buttons (Start, Complete, Cancel) based on current status
-- **Notifications** — in-app or email notifications when a shift is assigned, proposed, accepted, or declined
-- **Handling declined members** — when a member declines, the Leader should be notified and able to replace that member before the shift can reach Planned
-- **Coordinator as Leader** — the flow for a Coordinator who assigns themselves as Leader needs validation (they bypass the propose step, or it auto-proposes)
+- **Leader can remove participants:** currently only add is supported; remove endpoint is missing
+- **Decline with reason:** when a member declines, they should be able to provide a written reason visible to the Leader and Coordinator
+- **Coordinator flow refinement:** the Coordinator shift detail view needs clearer status transitions and action buttons (Start, Complete, Cancel) based on current status
+- **Notifications:** in-app or email notifications when a shift is assigned, proposed, accepted, or declined
+- **Handling declined members:** when a member declines, the Leader should be notified and able to replace that member before the shift can reach Planned
+- **Coordinator as Leader:** the flow for a Coordinator who assigns themselves as Leader needs validation (they bypass the propose step, or it auto-proposes)
 - **Pagination** on list endpoints (shifts, users)
 - **Calendar/schedule view** endpoint
 - **PDF shift report** export
@@ -303,17 +303,17 @@ Demo accounts (auto-seeded on startup, password: `Pass123$`):
 - [x] GitHub Actions CI/CD (build and integration tests on every push)
 - [x] Deployed: Render, Neon PostgreSQL, Vercel
 
-### Planned — Shift Workflow
+### Planned: Shift Workflow
 
 - [ ] Remove participant endpoint (`DELETE /api/shifts/{id}/participants/{userId}`) for Leader use
-- [ ] Decline reason field on `PUT /api/shifts/{id}/respond` — optional free-text, visible to Leader and Coordinator
-- [ ] Handling declined members — Leader notification, replacement flow before Planned is reachable
-- [ ] Coordinator-as-Leader flow — validate and streamline the edge case where the Coordinator assigns themselves as Leader
-- [ ] Coordinator shift detail view — clear action buttons per status (Start, Complete, Cancel) with confirmation dialogs
+- [ ] Decline reason field on `PUT /api/shifts/{id}/respond`: optional free-text, visible to Leader and Coordinator
+- [ ] Handling declined members: Leader notification, replacement flow before Planned is reachable
+- [ ] Coordinator-as-Leader flow: validate and streamline the edge case where the Coordinator assigns themselves as Leader
+- [ ] Coordinator shift detail view: clear action buttons per status (Start, Complete, Cancel) with confirmation dialogs
 
-### Planned — Features
+### Planned: Features
 
-- [ ] In-app notifications — shift assigned, proposed, accepted, declined
+- [ ] In-app notifications: shift assigned, proposed, accepted, declined
 - [ ] Pagination on list endpoints (shifts, users)
 - [ ] Calendar and schedule view endpoint
 - [ ] PDF shift report export per shift
