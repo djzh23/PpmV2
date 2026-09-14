@@ -27,13 +27,6 @@ public sealed class ApproveShiftHandler
 
         shift.Status = ShiftStatus.Planned;
 
-        // Confirm all still-invited participants when Coordinator approves directly.
-        foreach (var p in shift.Participants.Where(p => p.ConfirmationStatus == ParticipantConfirmationStatus.Invited))
-        {
-            p.ConfirmationStatus = ParticipantConfirmationStatus.Accepted;
-            p.RespondedAt = null;
-        }
-
         await _repo.SaveChangesAsync(ct);
         return ServiceResult.Ok();
     }

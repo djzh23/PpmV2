@@ -8,6 +8,6 @@ public class ShiftParticipant
 
     // (Composite Key: ShiftId + UserId)
 
-    public ParticipantConfirmationStatus ConfirmationStatus { get; set; } = ParticipantConfirmationStatus.Accepted;
+    public ParticipantConfirmationStatus ConfirmationStatus { get; set; } = ParticipantConfirmationStatus.Invited;
     public DateTime? RespondedAt { get; set; }
 }

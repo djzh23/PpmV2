@@ -79,7 +79,12 @@ public sealed class CreateShiftHandler
         {
             ShiftId = einsatzId,
             UserId = p.UserId,
-            Role = p.Role
+            Role = p.Role,
+            // Leader is assigned by the Coordinator and is aware of their role.
+            // All other participants start as Invited and must accept via the shift propose flow.
+            ConfirmationStatus = p.Role == ShiftRole.Leader
+                ? ParticipantConfirmationStatus.Accepted
+                : ParticipantConfirmationStatus.Invited,
         }).ToList();
 
         await _repo.AddAsync(einsatz, participants, ct);
