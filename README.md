@@ -107,21 +107,6 @@ Any status can transition to `Cancelled` by the Coordinator or assigned Leader.
 
 7. **Shift completed** (`PUT /api/shifts/{id}/complete`): Coordinator marks the shift as `Completed` after it ends.
 
-### What Is Pending / To Be Improved
-
-The following items are planned but not yet implemented:
-
-- **Leader can remove participants:** currently only add is supported; remove endpoint is missing
-- **Decline with reason:** when a member declines, they should be able to provide a written reason visible to the Leader and Coordinator
-- **Coordinator flow refinement:** the Coordinator shift detail view needs clearer status transitions and action buttons (Start, Complete, Cancel) based on current status
-- **Notifications:** in-app or email notifications when a shift is assigned, proposed, accepted, or declined
-- **Handling declined members:** when a member declines, the Leader should be notified and able to replace that member before the shift can reach Planned
-- **Coordinator as Leader:** the flow for a Coordinator who assigns themselves as Leader needs validation (they bypass the propose step, or it auto-proposes)
-- **Pagination** on list endpoints (shifts, users)
-- **Calendar/schedule view** endpoint
-- **PDF shift report** export
-- **Audit log** (who changed what and when)
-
 ---
 
 ## Features
