@@ -33,6 +33,7 @@ public sealed class ProposeShiftTeamHandler
 
         shift.Status = ShiftStatus.PendingApproval;
 
+        var inviteCount = 0;
         foreach (var p in shift.Participants)
         {
             if (p.UserId == cmd.ProposerId)
@@ -40,7 +41,12 @@ public sealed class ProposeShiftTeamHandler
 
             p.ConfirmationStatus = ParticipantConfirmationStatus.Invited;
             p.RespondedAt = null;
+            inviteCount++;
         }
+
+        // If the leader is the only participant, no one needs to respond — skip straight to Planned.
+        if (inviteCount == 0)
+            shift.Status = ShiftStatus.Planned;
 
         await _repo.SaveChangesAsync(ct);
         return ServiceResult.Ok();

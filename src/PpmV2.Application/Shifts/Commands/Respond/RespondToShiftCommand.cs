@@ -39,6 +39,16 @@ public sealed class RespondToShiftHandler
         participant.ConfirmationStatus = cmd.Response;
         participant.RespondedAt = cmd.RespondedAt;
 
+        // Auto-transition to Planned when every participant has accepted.
+        // The Leader already has Accepted status from creation; this fires once
+        // the last invited team member responds with Accepted.
+        if (cmd.Response == ParticipantConfirmationStatus.Accepted)
+        {
+            var allAccepted = shift.Participants.All(p => p.ConfirmationStatus == ParticipantConfirmationStatus.Accepted);
+            if (allAccepted)
+                shift.Status = ShiftStatus.Planned;
+        }
+
         await _repo.SaveChangesAsync(ct);
         return ServiceResult.Ok();
     }

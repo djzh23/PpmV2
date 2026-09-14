@@ -134,12 +134,13 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("AdminOnly", policy =>
         policy.RequireRole(UserRole.Admin.ToString()));
 
-    // Shift creation is restricted to Coordinator and Festmitarbeiter
+    // Shift creation and proposal is available to Coordinators and all staff roles.
     // (legacy name "EinsatzCreate" kept for now; can be renamed to "ShiftCreate" later).
     options.AddPolicy("EinsatzCreate", policy =>
         policy.RequireRole(
             UserRole.Coordinator.ToString(),
-            UserRole.Festmitarbeiter.ToString()
+            UserRole.Festmitarbeiter.ToString(),
+            UserRole.Honorarkraft.ToString()
         ));
 
     // Shift lifecycle management: Coordinator and Admin can approve/cancel

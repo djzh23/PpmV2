@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using PpmV2.Application.Users.DTOs;
 using PpmV2.Application.Users.Interfaces;
+using PpmV2.Domain.Shifts;
 using PpmV2.Domain.Users;
 
 namespace PpmV2.Infrastructure.Persistence.Queries;
@@ -11,7 +12,10 @@ public sealed class StaffQueryService : IStaffQuery
 
     public StaffQueryService(AppDbContext db) => _db = db;
 
-    public async Task<IReadOnlyList<StaffMemberDto>> GetAllStaffAsync(CancellationToken ct = default)
+    public async Task<IReadOnlyList<StaffMemberDto>> GetAllStaffAsync(
+        DateTime? startAt = null,
+        DateTime? endAt = null,
+        CancellationToken ct = default)
     {
         var staffRoles = new[] { UserRole.Festmitarbeiter, UserRole.Honorarkraft };
 
@@ -47,13 +51,34 @@ public sealed class StaffQueryService : IStaffQuery
                     .ToList()
             );
 
+        // Conflict detection: find staff already scheduled during the requested window.
+        // A conflict exists when the staff member is a non-declined participant on any
+        // non-cancelled shift whose time window overlaps with [startAt, endAt).
+        HashSet<Guid> conflictingIds = [];
+        if (startAt.HasValue && endAt.HasValue)
+        {
+            var busyIds = await _db.EinsatzParticipants
+                .AsNoTracking()
+                .Where(p => staffIds.Contains(p.UserId))
+                .Where(p => p.ConfirmationStatus != ParticipantConfirmationStatus.Declined)
+                .Join(_db.Einsaetze, p => p.ShiftId, e => e.Id, (p, e) => new { p.UserId, e.StartAtUtc, e.EndAtUtc, e.Status })
+                .Where(x => x.Status != ShiftStatus.Cancelled && x.Status != ShiftStatus.Completed)
+                .Where(x => x.StartAtUtc < endAt.Value && (x.EndAtUtc == null || x.EndAtUtc > startAt.Value))
+                .Select(x => x.UserId)
+                .Distinct()
+                .ToListAsync(ct);
+
+            conflictingIds = [.. busyIds];
+        }
+
         return staff
             .Select(s => new StaffMemberDto(
                 s.Id.ToString(),
                 s.Firstname,
                 s.Lastname,
                 s.Role,
-                locationLookup.TryGetValue(s.Id, out var locs) ? locs : []
+                locationLookup.TryGetValue(s.Id, out var locs) ? locs : [],
+                conflictingIds.Contains(s.Id)
             ))
             .ToList();
     }

@@ -5,7 +5,8 @@ public sealed record StaffMemberDto(
     string Firstname,
     string Lastname,
     string Role,
-    IReadOnlyList<StaffLocationDto> Locations
+    IReadOnlyList<StaffLocationDto> Locations,
+    bool HasConflict = false
 );
 
 public sealed record StaffLocationDto(Guid Id, string Name, string District);

@@ -76,12 +76,16 @@ public class UsersController : ControllerBase
 
     /// <summary>
     /// Returns all approved staff members (Festmitarbeiter and Honorarkraft) with their location assignments.
+    /// Optional: pass startAt and endAt (UTC ISO strings) to include a HasConflict flag per member.
     /// </summary>
     [HttpGet("staff")]
-    [Authorize(Policy = "ShiftManage")]
-    public async Task<IActionResult> GetStaff(CancellationToken ct)
+    [Authorize(Policy = "EinsatzCreate")]
+    public async Task<IActionResult> GetStaff(
+        [FromQuery] DateTime? startAt,
+        [FromQuery] DateTime? endAt,
+        CancellationToken ct)
     {
-        var result = await _staffQuery.GetAllStaffAsync(ct);
+        var result = await _staffQuery.GetAllStaffAsync(startAt, endAt, ct);
         return Ok(result);
     }
 
