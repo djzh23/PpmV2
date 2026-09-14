@@ -487,3 +487,4 @@ $RECYCLE.BIN/
 !docs/
 !docs/diagrams/
 !docs/diagrams/*.pngbuild-diag.log
+.dotnet-cli/
