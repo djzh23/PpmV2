@@ -43,9 +43,15 @@ public static class AdminSeeder
         var email = section["Email"];
         var password = section["Password"];
 
-        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+        if (string.IsNullOrWhiteSpace(password))
         {
-            logger.LogWarning("AdminSeeder: Email or Password missing. Skipping seed.");
+            logger.LogInformation("AdminSeeder: Password missing. Skipping seed.");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            logger.LogWarning("AdminSeeder: Email missing. Skipping seed.");
             return;
         }
 

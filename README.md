@@ -256,11 +256,12 @@ All tests:
 dotnet test
 ```
 
+The admin account is not public; in Production its password is set through `AdminSeed__Password`.
+
 Demo accounts (auto-seeded on startup, password: `Pass123$`):
 
 | Email | Role |
 |---|---|
-| `admin@test.com` | Admin |
 | `koord1@test.com` | Coordinator |
 | `fest1@test.com` | Festmitarbeiter |
 | `hon1@test.com` | Honorarkraft |
