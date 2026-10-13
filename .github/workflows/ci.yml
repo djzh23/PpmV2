@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main, feature-3/docker-seeding ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, feature-3/docker-seeding ]
+    branches: [ main ]
 
 jobs:
   build-and-test:

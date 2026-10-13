@@ -39,7 +39,7 @@ After completing the thesis, I identified clear architectural weaknesses in v1: 
 | Data access | EF Core with CQRS query/command separation, AsNoTracking on all read paths, optimized multi-query joins |
 | API design | RESTful controllers, CancellationToken propagation at every layer, consistent response shapes |
 | Testing | 92 tests: 63 unit tests (xUnit + Moq) + 29 integration tests (WebApplicationFactory + real PostgreSQL) |
-| CI/CD | GitHub Actions pipeline: build and integration tests on every push, PostgreSQL service container |
+| CI | GitHub Actions pipeline: build and integration tests on every push, PostgreSQL service container |
 | Deployment | Docker multi-stage build, live on Render with Neon PostgreSQL, CORS config-driven per environment |
 
 ---
@@ -126,7 +126,7 @@ Any status can transition to `Cancelled` by the Coordinator or assigned Leader.
 | Demo data seeding | ✅ | Admin, demo users across all roles, and locations auto-seeded on startup |
 | Multi-database | ✅ | PostgreSQL (primary) and SQL Server supported, separate migration folders |
 | Integration tests | ✅ | 29 integration tests via WebApplicationFactory against a real PostgreSQL instance |
-| CI/CD | ✅ | GitHub Actions: build and integration tests on every push |
+| CI | ✅ | GitHub Actions: build and integration tests on every push |
 
 ---
 
@@ -163,6 +163,8 @@ Any status can transition to `Cancelled` by the Coordinator or assigned Leader.
 |---|---|---|---|
 | `GET` | `/api/users/me` | Get own profile | Bearer |
 | `GET` | `/api/users/me/locations` | Get locations assigned to the current Festmitarbeiter | Bearer |
+| `GET` | `/api/users/staff` | List staff members | Coordinator / Festmitarbeiter / Honorarkraft |
+| `PUT` | `/api/users/{userId}/locations` | Update a user's location assignments | Coordinator / Admin |
 
 ### Locations
 
@@ -187,7 +189,8 @@ Any status can transition to `Cancelled` by the Coordinator or assigned Leader.
 | `PUT` | `/api/shifts/{id}/start` | Start a shift (Planned to Active) | Coordinator / Admin |
 | `PUT` | `/api/shifts/{id}/complete` | Complete a shift (Active to Completed) | Coordinator / Admin |
 | `PUT` | `/api/shifts/{id}/cancel` | Cancel a shift | Coordinator / Admin |
-| `PUT` | `/api/shifts/{id}/respond` | Accept or decline a shift invitation | Bearer |
+| `POST` | `/api/shifts/{id}/participants` | Add a participant to a shift | Coordinator / Festmitarbeiter |
+| `PUT` | `/api/shifts/{id}/participants/{userId}/respond` | Accept or decline a shift invitation | Bearer |
 
 ### Admin
 
@@ -285,7 +288,7 @@ Demo accounts (auto-seeded on startup, password: `Pass123$`):
 - [x] Config-driven CORS (per-environment, suffix matching)
 - [x] Docker Compose with database seeding
 - [x] 63 unit tests + 29 integration tests (WebApplicationFactory + real PostgreSQL)
-- [x] GitHub Actions CI/CD (build and integration tests on every push)
+- [x] GitHub Actions CI (build and integration tests on every push)
 - [x] Deployed: Render, Neon PostgreSQL, Vercel
 
 ### Planned: Shift Workflow
