@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using PpmV2.Infrastructure.Persistence;
 
 namespace PpmV2.Tests.Integration;
@@ -32,6 +33,11 @@ public sealed class PpmV2WebApplicationFactory : WebApplicationFactory<Program>
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        // The managed Windows test environment cannot write to the EventLog source.
+        // Keep application logging behavior unchanged; only remove that provider in
+        // the in-process test host so EF diagnostics do not abort host startup.
+        builder.ConfigureLogging(logging => logging.ClearProviders());
+
         // Enable AdminSeeder so tests can log in as admin to approve users.
         // All other seeders are disabled — tests create their own data.
         builder.UseSetting("AdminSeed:Enabled", "true");

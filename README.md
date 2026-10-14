@@ -38,7 +38,7 @@ After completing the thesis, I identified clear architectural weaknesses in v1: 
 | Error handling | RFC 7807 ProblemDetails across all failure paths, ServiceResult for non-exceptional control flow |
 | Data access | EF Core with CQRS query/command separation, AsNoTracking on all read paths, optimized multi-query joins |
 | API design | RESTful controllers, CancellationToken propagation at every layer, consistent response shapes |
-| Testing | 92 tests: 63 unit tests (xUnit + Moq) + 29 integration tests (WebApplicationFactory + real PostgreSQL) |
+| Testing | 106 tests: 63 unit tests (xUnit + Moq) + 43 integration tests (WebApplicationFactory + real PostgreSQL) |
 | CI | GitHub Actions pipeline: build and integration tests on every push, PostgreSQL service container |
 | Deployment | Docker multi-stage build, live on Render with Neon PostgreSQL, CORS config-driven per environment |
 
@@ -125,7 +125,7 @@ Any status can transition to `Cancelled` by the Coordinator or assigned Leader.
 | Validation errors | ✅ | Field-level 400 Bad Request responses via application/problem+json |
 | Demo data seeding | ✅ | Admin, demo users across all roles, and locations auto-seeded on startup |
 | Multi-database | ✅ | PostgreSQL (primary) and SQL Server supported, separate migration folders |
-| Integration tests | ✅ | 29 integration tests via WebApplicationFactory against a real PostgreSQL instance |
+| Integration tests | ✅ | 43 integration tests via WebApplicationFactory against a real PostgreSQL instance |
 | CI | ✅ | GitHub Actions: build and integration tests on every push |
 
 ---
@@ -288,7 +288,7 @@ Demo accounts (auto-seeded on startup, password: `Pass123$`):
 - [x] AsNoTracking on all read-only queries, optimized N+1-free join queries
 - [x] Config-driven CORS (per-environment, suffix matching)
 - [x] Docker Compose with database seeding
-- [x] 63 unit tests + 29 integration tests (WebApplicationFactory + real PostgreSQL)
+- [x] 63 unit tests + 43 integration tests (WebApplicationFactory + real PostgreSQL)
 - [x] GitHub Actions CI (build and integration tests on every push)
 - [x] Deployed: Render, Neon PostgreSQL, Vercel
 

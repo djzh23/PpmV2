@@ -58,6 +58,12 @@ public abstract class IntegrationTestBase
     /// </summary>
     protected async Task<(string Token, string UserId)> CreateApprovedUserAsync(string role)
     {
+        var user = await CreateApprovedUserWithCredentialsAsync(role);
+        return (user.Token, user.UserId);
+    }
+
+    protected async Task<(string Token, string UserId, string Email, string Password)> CreateApprovedUserWithCredentialsAsync(string role)
+    {
         var email = $"{role.ToLower()}-{Guid.NewGuid():N}@test.local";
 
         // 1. Register
@@ -86,11 +92,17 @@ public abstract class IntegrationTestBase
 
         // 3. Login as the new user
         adminClient.DefaultRequestHeaders.Authorization = null;
-        var loginResponse = await Client.PostAsJsonAsync("/api/auth/login", new { email, password = DefaultPassword });
+        var token = await LoginAsync(email, DefaultPassword);
+        return (token, userId.ToString(), email, DefaultPassword);
+    }
+
+    protected async Task<string> LoginAsync(string email, string password = DefaultPassword)
+    {
+        var loginResponse = await Client.PostAsJsonAsync("/api/auth/login", new { email, password });
         loginResponse.EnsureSuccessStatusCode();
 
         var loginResult = await loginResponse.Content.ReadFromJsonAsync<LoginResult>();
-        return (loginResult!.Token, userId.ToString());
+        return loginResult!.Token;
     }
 
     /// <summary>
