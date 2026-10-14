@@ -12,7 +12,7 @@ REST API for shift planning and personnel management in a volunteer association,
 
 **Live Demo:** [ppmv2.vercel.app](https://ppmv2.vercel.app)
 **API:** [ppmv2-hbb4.onrender.com](https://ppmv2-hbb4.onrender.com)
-**Frontend repo:** [ppmv2-next-frontend](https://github.com/djzh23/ppmv2-next-frontend) (Next.js 15 + shadcn/ui)
+**Frontend repo:** [ppmv2-next-frontend](https://github.com/djzh23/ppmv2-next-frontend) (Next.js 16 + shadcn/ui)
 
 ---
 
@@ -38,7 +38,7 @@ After completing the thesis, I identified clear architectural weaknesses in v1: 
 | Error handling | RFC 7807 ProblemDetails across all failure paths, ServiceResult for non-exceptional control flow |
 | Data access | EF Core with CQRS query/command separation, AsNoTracking on all read paths, optimized multi-query joins |
 | API design | RESTful controllers, CancellationToken propagation at every layer, consistent response shapes |
-| Testing | 112 tests: 63 unit tests (xUnit + Moq) + 49 integration tests (WebApplicationFactory + real PostgreSQL) |
+| Testing | 116 tests: 67 unit tests (xUnit + Moq) + 49 integration tests (WebApplicationFactory + real PostgreSQL) |
 | CI | GitHub Actions pipeline: build and integration tests on every push, PostgreSQL service container |
 | Deployment | Docker multi-stage build, live on Render with Neon PostgreSQL, CORS config-driven per environment |
 
@@ -79,15 +79,15 @@ The core domain is the **shift** (*Einsatz*), which moves through a defined stat
 ```
 Draft
   |-- (Leader proposes) --> PendingApproval
-                               |-- (all members accept) --> Planned (auto)
-                               |-- Leader start --> Active
-                                                     |-- Leader complete --> Completed
-                                                     |-- cancel          --> Cancelled
+                               |-- (all members accept) --> Planned
+                                                               |-- Leader start --> Active
+                                                                                     |-- Leader complete --> Completed
 ```
 
-Any status can transition to `Cancelled` by the Coordinator or assigned Leader. Once a shift is `Planned`, only
-the participant assigned as **Leader on that exact shift** may start or complete it — Coordinator and Admin no
-longer have start/complete rights, even though they still approve and cancel.
+Coordinator or Admin may cancel any shift that is not yet `Completed`. The participant assigned as **Leader on
+that exact shift** may additionally cancel it, but only while it is still in `Draft` or `PendingApproval`. Once a
+shift is `Planned`, only that Leader may start or complete it; Coordinator and Admin no longer have start/complete
+rights, even though they still approve and cancel.
 
 ### Step-by-Step Flow
 
@@ -101,9 +101,9 @@ longer have start/complete rights, even though they still approve and cancel.
 
 3. **Leader proposes** (`PUT /api/shifts/{id}/propose`): the shift moves to `PendingApproval`. All non-leader participants are set to `Invited`.
 
-4. **Team members respond:** each invited member sees the shift in their inbox with Accept/Decline options (`PUT /api/shifts/{id}/participants/{userId}/respond`). Members can optionally provide a reason when declining.
+4. **Team members respond:** each invited member sees the shift in their inbox with Accept/Decline options (`PUT /api/shifts/{id}/participants/{userId}/respond`).
 
-5. **Auto-transition to Planned:** once all participants have accepted, the shift automatically transitions to `Planned`. The Coordinator is informed the team is assembled and ready.
+5. **Auto-transition to Planned:** once all participants have accepted, the shift automatically transitions to `Planned`.
 
 6. **Leader starts the shift** (`PUT /api/shifts/{id}/start`): moves from `Planned` to `Active` when the event begins. Only the participant assigned as Leader on this shift may call this — Coordinator and Admin receive `403 Forbidden`.
 
@@ -185,13 +185,13 @@ longer have start/complete rights, even though they still approve and cancel.
 |---|---|---|---|
 | `GET` | `/api/shifts` | List shifts (Festmitarbeiter see only their own, `?status=` filter supported) | Bearer |
 | `GET` | `/api/shifts/{id}` | Get shift detail with participants and readiness check | Bearer |
-| `POST` | `/api/shifts` | Create a shift in Draft status | Coordinator / Festmitarbeiter |
-| `PUT` | `/api/shifts/{id}/propose` | Propose a team (Draft to PendingApproval) | Coordinator / Festmitarbeiter |
+| `POST` | `/api/shifts` | Create a shift in Draft status | Coordinator / Festmitarbeiter / Honorarkraft |
+| `PUT` | `/api/shifts/{id}/propose` | Propose a team (Draft to PendingApproval) | Coordinator / Festmitarbeiter / Honorarkraft |
 | `PUT` | `/api/shifts/{id}/approve` | Approve a shift (PendingApproval or Draft to Planned) | Coordinator / Admin |
 | `PUT` | `/api/shifts/{id}/start` | Start a shift (Planned to Active) | Leader of the Einsatz |
 | `PUT` | `/api/shifts/{id}/complete` | Complete a shift (Active to Completed) | Leader of the Einsatz |
-| `PUT` | `/api/shifts/{id}/cancel` | Cancel a shift | Coordinator / Admin |
-| `POST` | `/api/shifts/{id}/participants` | Add a participant to a shift | Coordinator / Festmitarbeiter |
+| `PUT` | `/api/shifts/{id}/cancel` | Cancel a shift | Coordinator / Admin (any non-completed shift); Leader (Draft or PendingApproval only) |
+| `POST` | `/api/shifts/{id}/participants` | Add a participant to a shift | Leader of the shift |
 | `PUT` | `/api/shifts/{id}/participants/{userId}/respond` | Accept or decline a shift invitation | Bearer |
 
 ### Admin
@@ -290,7 +290,7 @@ Demo accounts (auto-seeded on startup, password: `Pass123$`):
 - [x] AsNoTracking on all read-only queries, optimized N+1-free join queries
 - [x] Config-driven CORS (per-environment, suffix matching)
 - [x] Docker Compose with database seeding
-- [x] 63 unit tests + 49 integration tests (WebApplicationFactory + real PostgreSQL)
+- [x] 67 unit tests + 49 integration tests (WebApplicationFactory + real PostgreSQL)
 - [x] GitHub Actions CI (build and integration tests on every push)
 - [x] Deployed: Render, Neon PostgreSQL, Vercel
 
@@ -300,7 +300,7 @@ Demo accounts (auto-seeded on startup, password: `Pass123$`):
 - [ ] Decline reason field on `PUT /api/shifts/{id}/participants/{userId}/respond`: optional free-text, visible to Leader and Coordinator
 - [ ] Handling declined members: Leader notification, replacement flow before Planned is reachable
 - [ ] Coordinator-as-Leader flow: validate and streamline the edge case where the Coordinator assigns themselves as Leader
-- [ ] Coordinator shift detail view: clear action buttons per status (Start, Complete, Cancel) with confirmation dialogs
+- [ ] Coordinator shift detail view: cancel with confirmation dialog
 
 ### Planned: Features
 
@@ -327,6 +327,6 @@ This reflects a key architectural decision: by keeping the backend a stable, wel
 
 | Repository | Description |
 |---|---|
-| [ppmv2-next-frontend](https://github.com/djzh23/ppmv2-next-frontend) | Next.js 15 + shadcn/ui frontend for this API |
+| [ppmv2-next-frontend](https://github.com/djzh23/ppmv2-next-frontend) | Next.js 16 + shadcn/ui frontend for this API |
 | [apiproject](https://github.com/djzh23/apiproject) | PPM v1, original Laravel backend from the Bachelor's thesis |
 | [frontendproject](https://github.com/djzh23/frontendproject) | PPM v1, .NET MAUI mobile client from the Bachelor's thesis |

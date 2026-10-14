@@ -99,7 +99,8 @@ builder.Services
 // --- JWT authentication setup ---
 // Token validation parameters are aligned with JwtTokenService configuration (Issuer/Audience/Key).
 var jwtSection = builder.Configuration.GetSection("Jwt");
-var jwtKey = jwtSection["Key"] ?? throw new InvalidOperationException("JWT Key is missing (Jwt:Key).");
+var jwtKey = jwtSection["Key"];
+JwtKeyGuard.Validate(jwtKey, builder.Environment.IsProduction());
 
 builder.Services.AddAuthentication(options =>
 {
@@ -108,9 +109,6 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
-    var jwtSection = builder.Configuration.GetSection("Jwt");
-    var jwtKey = jwtSection["Key"] ?? throw new InvalidOperationException("JWT Key is missing.");
-
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
@@ -119,7 +117,7 @@ builder.Services.AddAuthentication(options =>
         ValidateIssuerSigningKey = true,
         ValidIssuer = jwtSection["Issuer"],
         ValidAudience = jwtSection["Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey!)),
         // Small clock skew to reduce token expiry issues caused by time drift.
         ClockSkew = TimeSpan.FromMinutes(1)
     };
