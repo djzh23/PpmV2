@@ -25,9 +25,12 @@ public sealed class AuthorizationMatrixTests(PpmV2WebApplicationFactory factory)
     }
 
     [Fact]
-    public async Task Festmitarbeiter_CannotApproveStartOrComplete()
+    public async Task Festmitarbeiter_CannotApprove_ButCanStartAndCompleteAsLeader()
     {
         var (coordinatorToken, _) = await CreateApprovedUserAsync("Coordinator");
+        // staffId is registered as the shift's Leader participant below, so staffToken
+        // is both "a Festmitarbeiter" and "the shift leader" — only the latter matters
+        // for start/complete now.
         var (staffToken, staffId) = await CreateApprovedUserAsync("Festmitarbeiter");
         var locationId = await CreateLocationAsync(coordinatorToken, $"StaffRights-{Guid.NewGuid():N}");
         var shiftId = await CreateShiftAsync(coordinatorToken, staffId, locationId);
@@ -40,16 +43,22 @@ public sealed class AuthorizationMatrixTests(PpmV2WebApplicationFactory factory)
         Assert.Equal(HttpStatusCode.NoContent,
             (await Client.PutAsync($"/api/shifts/{shiftId}/approve", null)).StatusCode);
 
-        Authorize(staffToken);
+        // The coordinator approved the shift but is not its leader, so start/complete
+        // are forbidden even to them now.
+        Authorize(coordinatorToken);
         Assert.Equal(HttpStatusCode.Forbidden,
             (await Client.PutAsync($"/api/shifts/{shiftId}/start", null)).StatusCode);
 
-        Authorize(coordinatorToken);
+        Authorize(staffToken);
         Assert.Equal(HttpStatusCode.NoContent,
             (await Client.PutAsync($"/api/shifts/{shiftId}/start", null)).StatusCode);
 
-        Authorize(staffToken);
+        Authorize(coordinatorToken);
         Assert.Equal(HttpStatusCode.Forbidden,
+            (await Client.PutAsync($"/api/shifts/{shiftId}/complete", null)).StatusCode);
+
+        Authorize(staffToken);
+        Assert.Equal(HttpStatusCode.NoContent,
             (await Client.PutAsync($"/api/shifts/{shiftId}/complete", null)).StatusCode);
     }
 

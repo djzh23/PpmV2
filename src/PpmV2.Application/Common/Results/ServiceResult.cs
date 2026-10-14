@@ -14,12 +14,14 @@ public class ServiceResult
     public bool Success { get; }
     public string? ErrorMessage { get; }
     public bool IsNotFound { get; }
+    public bool IsForbidden { get; }
 
-    protected ServiceResult(bool success, string? errorMessage = null, bool isNotFound = false)
+    protected ServiceResult(bool success, string? errorMessage = null, bool isNotFound = false, bool isForbidden = false)
     {
         Success = success;
         ErrorMessage = errorMessage;
         IsNotFound = isNotFound;
+        IsForbidden = isForbidden;
     }
 
     public static ServiceResult Ok() => new(true);
@@ -29,5 +31,8 @@ public class ServiceResult
 
     public static ServiceResult NotFound(string errorMessage) =>
         new(false, errorMessage, isNotFound: true);
+
+    public static ServiceResult Forbidden(string errorMessage) =>
+        new(false, errorMessage, isForbidden: true);
 }
 

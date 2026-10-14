@@ -180,13 +180,13 @@ public class ShiftsController : ControllerBase
     }
 
     /// <summary>
-    /// Coordinator starts a planned shift: Planned → Active.
+    /// Starts a planned shift: Planned → Active. Only this shift's Leader may do this.
     /// </summary>
     [HttpPut("{id:guid}/start")]
-    [Authorize(Policy = "ShiftManage")]
+    [Authorize]
     public async Task<IActionResult> Start(Guid id, CancellationToken ct)
     {
-        var result = await _start.Handle(new StartShiftCommand(id), ct);
+        var result = await _start.Handle(new StartShiftCommand(id, _currentUser.UserId), ct);
 
         if (!result.Success)
             return ApiProblem.From(result.ToAppError(), HttpContext);
@@ -195,13 +195,13 @@ public class ShiftsController : ControllerBase
     }
 
     /// <summary>
-    /// Coordinator completes an active shift: Active → Completed.
+    /// Completes an active shift: Active → Completed. Only this shift's Leader may do this.
     /// </summary>
     [HttpPut("{id:guid}/complete")]
-    [Authorize(Policy = "ShiftManage")]
+    [Authorize]
     public async Task<IActionResult> Complete(Guid id, CancellationToken ct)
     {
-        var result = await _complete.Handle(new CompleteShiftCommand(id), ct);
+        var result = await _complete.Handle(new CompleteShiftCommand(id, _currentUser.UserId), ct);
 
         if (!result.Success)
             return ApiProblem.From(result.ToAppError(), HttpContext);

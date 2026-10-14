@@ -4,10 +4,12 @@ using PpmV2.Domain.Shifts;
 
 namespace PpmV2.Application.Shifts.Commands.Complete;
 
-public sealed record CompleteShiftCommand(Guid ShiftId);
+/// <param name="ShiftId">The shift to complete.</param>
+/// <param name="RequesterId">The authenticated caller, used to verify they are this shift's Leader.</param>
+public sealed record CompleteShiftCommand(Guid ShiftId, Guid RequesterId);
 
 /// <summary>
-/// Coordinator completes an active shift: Active → Completed.
+/// Completes an active shift: Active → Completed. Only the shift's Leader participant may do this.
 /// </summary>
 public sealed class CompleteShiftHandler
 {
@@ -21,6 +23,10 @@ public sealed class CompleteShiftHandler
 
         if (shift is null)
             return ServiceResult.NotFound("Shift not found.");
+
+        var isLeader = shift.Participants.Any(p => p.UserId == cmd.RequesterId && p.Role == ShiftRole.Leader);
+        if (!isLeader)
+            return ServiceResult.Forbidden("Only this shift's leader can complete it.");
 
         if (shift.Status != ShiftStatus.Active)
             return ServiceResult.Fail($"Only Active shifts can be completed. Current status: {shift.Status}.");

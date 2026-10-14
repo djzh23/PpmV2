@@ -38,7 +38,7 @@ After completing the thesis, I identified clear architectural weaknesses in v1: 
 | Error handling | RFC 7807 ProblemDetails across all failure paths, ServiceResult for non-exceptional control flow |
 | Data access | EF Core with CQRS query/command separation, AsNoTracking on all read paths, optimized multi-query joins |
 | API design | RESTful controllers, CancellationToken propagation at every layer, consistent response shapes |
-| Testing | 106 tests: 63 unit tests (xUnit + Moq) + 43 integration tests (WebApplicationFactory + real PostgreSQL) |
+| Testing | 112 tests: 63 unit tests (xUnit + Moq) + 49 integration tests (WebApplicationFactory + real PostgreSQL) |
 | CI | GitHub Actions pipeline: build and integration tests on every push, PostgreSQL service container |
 | Deployment | Docker multi-stage build, live on Render with Neon PostgreSQL, CORS config-driven per environment |
 
@@ -80,12 +80,14 @@ The core domain is the **shift** (*Einsatz*), which moves through a defined stat
 Draft
   |-- (Leader proposes) --> PendingApproval
                                |-- (all members accept) --> Planned (auto)
-                               |-- Coordinator start --> Active
-                                                          |-- complete --> Completed
-                                                          |-- cancel  --> Cancelled
+                               |-- Leader start --> Active
+                                                     |-- Leader complete --> Completed
+                                                     |-- cancel          --> Cancelled
 ```
 
-Any status can transition to `Cancelled` by the Coordinator or assigned Leader.
+Any status can transition to `Cancelled` by the Coordinator or assigned Leader. Once a shift is `Planned`, only
+the participant assigned as **Leader on that exact shift** may start or complete it — Coordinator and Admin no
+longer have start/complete rights, even though they still approve and cancel.
 
 ### Step-by-Step Flow
 
@@ -103,9 +105,9 @@ Any status can transition to `Cancelled` by the Coordinator or assigned Leader.
 
 5. **Auto-transition to Planned:** once all participants have accepted, the shift automatically transitions to `Planned`. The Coordinator is informed the team is assembled and ready.
 
-6. **Coordinator starts the shift** (`PUT /api/shifts/{id}/start`): moves from `Planned` to `Active` when the event begins.
+6. **Leader starts the shift** (`PUT /api/shifts/{id}/start`): moves from `Planned` to `Active` when the event begins. Only the participant assigned as Leader on this shift may call this — Coordinator and Admin receive `403 Forbidden`.
 
-7. **Shift completed** (`PUT /api/shifts/{id}/complete`): Coordinator marks the shift as `Completed` after it ends.
+7. **Leader completes the shift** (`PUT /api/shifts/{id}/complete`): the Leader marks the shift as `Completed` after it ends. Same restriction as start.
 
 ---
 
@@ -125,7 +127,7 @@ Any status can transition to `Cancelled` by the Coordinator or assigned Leader.
 | Validation errors | ✅ | Field-level 400 Bad Request responses via application/problem+json |
 | Demo data seeding | ✅ | Admin, demo users across all roles, and locations auto-seeded on startup |
 | Multi-database | ✅ | PostgreSQL (primary) and SQL Server supported, separate migration folders |
-| Integration tests | ✅ | 43 integration tests via WebApplicationFactory against a real PostgreSQL instance |
+| Integration tests | ✅ | 49 integration tests via WebApplicationFactory against a real PostgreSQL instance |
 | CI | ✅ | GitHub Actions: build and integration tests on every push |
 
 ---
@@ -186,8 +188,8 @@ Any status can transition to `Cancelled` by the Coordinator or assigned Leader.
 | `POST` | `/api/shifts` | Create a shift in Draft status | Coordinator / Festmitarbeiter |
 | `PUT` | `/api/shifts/{id}/propose` | Propose a team (Draft to PendingApproval) | Coordinator / Festmitarbeiter |
 | `PUT` | `/api/shifts/{id}/approve` | Approve a shift (PendingApproval or Draft to Planned) | Coordinator / Admin |
-| `PUT` | `/api/shifts/{id}/start` | Start a shift (Planned to Active) | Coordinator / Admin |
-| `PUT` | `/api/shifts/{id}/complete` | Complete a shift (Active to Completed) | Coordinator / Admin |
+| `PUT` | `/api/shifts/{id}/start` | Start a shift (Planned to Active) | Leader of the Einsatz |
+| `PUT` | `/api/shifts/{id}/complete` | Complete a shift (Active to Completed) | Leader of the Einsatz |
 | `PUT` | `/api/shifts/{id}/cancel` | Cancel a shift | Coordinator / Admin |
 | `POST` | `/api/shifts/{id}/participants` | Add a participant to a shift | Coordinator / Festmitarbeiter |
 | `PUT` | `/api/shifts/{id}/participants/{userId}/respond` | Accept or decline a shift invitation | Bearer |
@@ -288,7 +290,7 @@ Demo accounts (auto-seeded on startup, password: `Pass123$`):
 - [x] AsNoTracking on all read-only queries, optimized N+1-free join queries
 - [x] Config-driven CORS (per-environment, suffix matching)
 - [x] Docker Compose with database seeding
-- [x] 63 unit tests + 43 integration tests (WebApplicationFactory + real PostgreSQL)
+- [x] 63 unit tests + 49 integration tests (WebApplicationFactory + real PostgreSQL)
 - [x] GitHub Actions CI (build and integration tests on every push)
 - [x] Deployed: Render, Neon PostgreSQL, Vercel
 

@@ -98,11 +98,14 @@ public sealed class ShiftWorkflowTests(PpmV2WebApplicationFactory factory)
         Assert.Equal(HttpStatusCode.NoContent, respondResponse.StatusCode);
         Assert.Equal("Planned", await GetStatusAsync(shiftId, coordinatorToken));
 
-        Authorize(coordinatorToken);
+        // Only the shift's Leader may start/complete now — the coordinator approves
+        // but does not participate in this shift.
+        Authorize(leaderToken);
         var startResponse = await Client.PutAsync($"/api/shifts/{shiftId}/start", null);
         Assert.Equal(HttpStatusCode.NoContent, startResponse.StatusCode);
         Assert.Equal("Active", await GetStatusAsync(shiftId, coordinatorToken));
 
+        Authorize(leaderToken);
         var completeResponse = await Client.PutAsync($"/api/shifts/{shiftId}/complete", null);
         Assert.Equal(HttpStatusCode.NoContent, completeResponse.StatusCode);
         Assert.Equal("Completed", await GetStatusAsync(shiftId, coordinatorToken));
@@ -164,11 +167,13 @@ public sealed class ShiftWorkflowTests(PpmV2WebApplicationFactory factory)
         var activeId = await CreateShiftAsync(coordinatorToken, leaderId, locationId);
         Authorize(coordinatorToken);
         Assert.Equal(HttpStatusCode.NoContent, (await Client.PutAsync($"/api/shifts/{activeId}/approve", null)).StatusCode);
+        Authorize(leaderToken);
         Assert.Equal(HttpStatusCode.NoContent, (await Client.PutAsync($"/api/shifts/{activeId}/start", null)).StatusCode);
 
         var completedId = await CreateShiftAsync(coordinatorToken, leaderId, locationId);
         Authorize(coordinatorToken);
         Assert.Equal(HttpStatusCode.NoContent, (await Client.PutAsync($"/api/shifts/{completedId}/approve", null)).StatusCode);
+        Authorize(leaderToken);
         Assert.Equal(HttpStatusCode.NoContent, (await Client.PutAsync($"/api/shifts/{completedId}/start", null)).StatusCode);
         Assert.Equal(HttpStatusCode.NoContent, (await Client.PutAsync($"/api/shifts/{completedId}/complete", null)).StatusCode);
 
