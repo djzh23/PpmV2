@@ -101,7 +101,7 @@ longer have start/complete rights, even though they still approve and cancel.
 
 3. **Leader proposes** (`PUT /api/shifts/{id}/propose`): the shift moves to `PendingApproval`. All non-leader participants are set to `Invited`.
 
-4. **Team members respond:** each invited member sees the shift in their inbox with Accept/Decline options (`PUT /api/shifts/{id}/respond`). Members can optionally provide a reason when declining.
+4. **Team members respond:** each invited member sees the shift in their inbox with Accept/Decline options (`PUT /api/shifts/{id}/participants/{userId}/respond`). Members can optionally provide a reason when declining.
 
 5. **Auto-transition to Planned:** once all participants have accepted, the shift automatically transitions to `Planned`. The Coordinator is informed the team is assembled and ready.
 
@@ -297,7 +297,7 @@ Demo accounts (auto-seeded on startup, password: `Pass123$`):
 ### Planned: Shift Workflow
 
 - [ ] Remove participant endpoint (`DELETE /api/shifts/{id}/participants/{userId}`) for Leader use
-- [ ] Decline reason field on `PUT /api/shifts/{id}/respond`: optional free-text, visible to Leader and Coordinator
+- [ ] Decline reason field on `PUT /api/shifts/{id}/participants/{userId}/respond`: optional free-text, visible to Leader and Coordinator
 - [ ] Handling declined members: Leader notification, replacement flow before Planned is reachable
 - [ ] Coordinator-as-Leader flow: validate and streamline the edge case where the Coordinator assigns themselves as Leader
 - [ ] Coordinator shift detail view: clear action buttons per status (Start, Complete, Cancel) with confirmation dialogs

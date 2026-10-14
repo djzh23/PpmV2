@@ -286,14 +286,18 @@ Response `200`: shift detail shape.
 
 Response `200`: shift detail shape.
 
-**Respond to invitation** `PUT /api/shifts/{id}/respond` — Bearer required
+**Respond to invitation** `PUT /api/shifts/{id}/participants/{userId}/respond` — Bearer required
+
+`userId` must match the logged-in user; otherwise `403 Forbidden`.
 
 Request:
 ```json
-{ "accept": true }
+{ "response": "Accepted" | "Declined" }
 ```
 
 Response `204 No Content`.
+
+Possible errors: `400` if the shift is not in `PendingApproval` status, or if the participant has already responded.
 
 ---
 
