@@ -270,13 +270,13 @@ Transitions: Draft or PendingApproval → Planned.
 
 Response `200`: shift detail shape.
 
-**Start shift** `PUT /api/shifts/{id}/start` — Coordinator or Admin
+**Start shift** `PUT /api/shifts/{id}/start` — only this shift's Leader
 
 Transitions: Planned → Active.
 
 Response `200`: shift detail shape.
 
-**Complete shift** `PUT /api/shifts/{id}/complete` — Coordinator or Admin
+**Complete shift** `PUT /api/shifts/{id}/complete` — only this shift's Leader
 
 Transitions: Active → Completed.
 
