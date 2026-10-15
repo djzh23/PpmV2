@@ -15,7 +15,7 @@ namespace PpmV2.Tests.Integration;
 /// database (ppmv2). Testcontainers was evaluated but rejected because
 /// Windows Application Control policies on this machine block Docker.DotNet DLLs.
 ///
-/// Prerequisites: docker-compose up -d db (postgres service) must be running.
+/// Prerequisites: docker-compose up -d postgres (postgres service) must be running.
 /// The connection string can be overridden via the PPMV2_TEST_CONNECTION_STRING
 /// environment variable for CI environments.
 ///

@@ -40,7 +40,7 @@ Response `200`:
 { "userId": "guid", "email": "string" }
 ```
 
-Newly registered users have status `Pending` and must be approved by an admin before they can log in.
+Newly registered users have status `Pending` and must be approved by an admin before they can log in. If the email already exists, the response is `409` with title `AUTH_USER_ALREADY_EXISTS`.
 
 ---
 
@@ -63,6 +63,8 @@ Response `200`:
 
 The `token` is a short-lived JWT access token. The `refreshToken` is a single-use opaque token valid for 7 days.
 
+If the password is valid and the account is not `Approved`, the response is `403` with title `AUTH_NOT_APPROVED`.
+
 ---
 
 **Refresh** `POST /api/auth/refresh`
@@ -84,7 +86,7 @@ Response `200`:
 }
 ```
 
-Error `401` if the token is unknown, expired, or already revoked.
+Error `401` if the token is unknown, expired, or already revoked. If the user is missing or not `Approved`, the response is `403` with title `AUTH_NOT_APPROVED`.
 
 ---
 
@@ -113,15 +115,46 @@ Response `200`:
   "lastname": "string",
   "email": "string",
   "role": "Admin | Coordinator | Festmitarbeiter | Honorarkraft",
-  "status": "Pending | Approved | Rejected"
+  "status": "Pending | Approved | Rejected | Deactivated"
 }
 ```
 
 **Own location assignments** `GET /api/users/me/locations` — Bearer required
 
-Returns the locations assigned to the current Festmitarbeiter. Empty array for other roles.
+Returns the active locations assigned to the current user. Empty array when that user has none.
 
 Response `200`: array of location items (same shape as `GET /api/locations`).
+
+**Staff** `GET /api/users/staff` — Coordinator, Festmitarbeiter, or Honorarkraft
+
+Returns approved Festmitarbeiter and Honorarkraft, with their location assignments.
+
+Optional query: `startAt` and `endAt` (UTC). `hasConflict` is true only when both are set and the person is a non-declined participant of a shift that is not `Cancelled` or `Completed` and overlaps `[startAt, endAt)`.
+
+Response `200`: array of:
+```json
+{
+  "userId": "guid",
+  "firstname": "string",
+  "lastname": "string",
+  "role": "Festmitarbeiter | Honorarkraft",
+  "locations": [{ "id": "guid", "name": "string", "district": "string" }],
+  "hasConflict": false
+}
+```
+
+**Update location assignments** `PUT /api/users/{userId}/locations` — Coordinator or Admin
+
+Replaces that user's assignments. Only Festmitarbeiter and Honorarkraft can be assigned. Ids that are not existing locations are ignored. An empty `locationIds` array clears the assignments.
+
+Request:
+```json
+{ "locationIds": ["guid"] }
+```
+
+Response `204 No Content`.
+
+`404` if the user does not exist. `400` if the role is not Festmitarbeiter or Honorarkraft.
 
 ---
 
@@ -155,15 +188,17 @@ Response `200`:
   "description": "string or null",
   "photoUrl": "string or null",
   "contactPerson": "string or null",
-  "capacity": 0,
+  "capacity": "number or null",
   "notes": "string or null",
-  "isActive": true
+  "isActive": true,
+  "createdAt": "ISO 8601 UTC",
+  "updatedAt": "ISO 8601 UTC or null"
 }
 ```
 
 **Create location** `POST /api/locations` — Coordinator or Admin
 
-Request: same fields as location detail (without `id` and `isActive`).
+Request: `name`, `district`, `address`, `description`, `photoUrl`, `contactPerson`, `capacity`, `notes`. No `id`, `isActive`, `createdAt`, or `updatedAt`.
 
 Response `201 Created`: location detail shape.
 
@@ -179,13 +214,17 @@ Sets `isActive` to `false`. Response `204 No Content`.
 
 **Available staff** `GET /api/locations/{id}/available-staff?date=YYYY-MM-DD` — Bearer required
 
+Returns users with role `Festmitarbeiter` who are assigned to this location and have no overlapping, non-declined participation on that date. `locations` is always `[]` and `hasConflict` is always `false`.
+
 Response `200`: array of:
 ```json
 {
   "userId": "guid",
   "firstname": "string",
   "lastname": "string",
-  "role": "Festmitarbeiter"
+  "role": "Festmitarbeiter",
+  "locations": [],
+  "hasConflict": false
 }
 ```
 
@@ -209,7 +248,7 @@ Response `200`: array of:
   "status": "Draft | PendingApproval | Planned | Active | Completed | Cancelled",
   "startAtUtc": "ISO 8601 UTC",
   "endAtUtc": "ISO 8601 UTC or null",
-  "location": { "id": "guid", "name": "string", "district": "string" },
+  "location": { "id": "guid", "name": "string", "district": "string", "address": "string or null" },
   "participantCount": 0
 }
 ```
@@ -240,7 +279,7 @@ Response `200`:
 }
 ```
 
-**Create shift** `POST /api/shifts` — Coordinator or Festmitarbeiter
+**Create shift** `POST /api/shifts` — Coordinator, Festmitarbeiter, or Honorarkraft
 
 Request:
 ```json
@@ -258,33 +297,48 @@ Request:
 
 Response `201 Created`: shift detail shape.
 
-**Propose team** `PUT /api/shifts/{id}/propose` — Coordinator or Festmitarbeiter
+**Propose team** `PUT /api/shifts/{id}/propose` — Coordinator, Festmitarbeiter, or Honorarkraft; only the assigned Leader succeeds
 
-Transitions: Draft → PendingApproval. Only the assigned leader can propose.
+Transitions: Draft → PendingApproval. If the leader is the only participant, the status becomes Planned instead.
 
-Response `200`: shift detail shape.
+Response `204 No Content`.
 
 **Approve shift** `PUT /api/shifts/{id}/approve` — Coordinator or Admin
 
 Transitions: Draft or PendingApproval → Planned.
 
-Response `200`: shift detail shape.
+Response `204 No Content`.
 
 **Start shift** `PUT /api/shifts/{id}/start` — only this shift's Leader
 
 Transitions: Planned → Active.
 
-Response `200`: shift detail shape.
+Response `204 No Content`.
 
 **Complete shift** `PUT /api/shifts/{id}/complete` — only this shift's Leader
 
 Transitions: Active → Completed.
 
-Response `200`: shift detail shape.
+Response `204 No Content`.
 
-**Cancel shift** `PUT /api/shifts/{id}/cancel` — Coordinator or Admin
+**Cancel shift** `PUT /api/shifts/{id}/cancel`
 
-Response `200`: shift detail shape.
+Coordinator or Admin may cancel any shift that is not `Completed`. The shift's Leader may cancel a shift in `Draft` or `PendingApproval`.
+
+Response `204 No Content`.
+
+**Add participant** `POST /api/shifts/{id}/participants` — Bearer required; only the shift's Leader
+
+Only `Draft` or `PendingApproval`. The new participant is stored as `Invited`.
+
+Request:
+```json
+{ "userId": "guid", "role": "Leader | Member | Support" }
+```
+
+Response `204 No Content`.
+
+`400` if the caller is not the leader, the shift is in another status, or the user is already a participant. `404` if the shift does not exist.
 
 **Respond to invitation** `PUT /api/shifts/{id}/participants/{userId}/respond` — Bearer required
 
@@ -320,7 +374,7 @@ Response: array of:
   "email": "string",
   "firstname": "string",
   "lastname": "string",
-  "status": "Pending | Approved | Rejected",
+  "status": "Pending | Approved | Rejected | Deactivated",
   "role": "Admin | Coordinator | Festmitarbeiter | Honorarkraft"
 }
 ```
@@ -349,7 +403,7 @@ All enums are serialized as strings in API responses.
 | Enum | Values |
 |---|---|
 | User role | `Admin`, `Coordinator`, `Festmitarbeiter`, `Honorarkraft` |
-| User status | `Pending`, `Approved`, `Rejected` |
+| User status | `Pending`, `Approved`, `Rejected`, `Deactivated` |
 | Shift status | `Draft`, `PendingApproval`, `Planned`, `Active`, `Completed`, `Cancelled` |
 | Shift participant role | `Leader`, `Member`, `Support` |
 | Confirmation status | `Invited`, `Accepted`, `Declined` |
@@ -378,8 +432,9 @@ The `errors` field is only present when there are field-level validation errors.
 |---|---|
 | `400` | Validation error or invalid business operation |
 | `401` | Missing or invalid token (including expired/revoked refresh token) |
-| `403` | Valid token but insufficient role |
+| `403` | Insufficient role, or `AUTH_NOT_APPROVED` when login or refresh finds an account that is not approved |
 | `404` | Resource not found |
+| `409` | `AUTH_USER_ALREADY_EXISTS` when registering an email that already exists |
 
 ---
 
