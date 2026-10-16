@@ -1,5 +1,8 @@
-# PPM – Backend
-Shift and Personnel Management (Einsatzplanung): REST-API für Benutzer, Standorte und Einsätze.
+# PPM Backend
+
+[![CI](https://github.com/djzh23/ppm-backend/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/djzh23/ppm-backend/actions/workflows/ci.yml)
+
+Play Pal Manager (PPM): Einsatzplanung als REST-API für Benutzer, Standorte und Einsätze.
 
 **Status:** Live · in Entwicklung
 **Demo:** [ppmv2.vercel.app](https://ppmv2.vercel.app) · **Frontend:** [ppm-frontend](https://github.com/djzh23/ppm-frontend)
