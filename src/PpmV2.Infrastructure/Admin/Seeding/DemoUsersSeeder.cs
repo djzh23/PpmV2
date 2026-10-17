@@ -6,7 +6,6 @@ using PpmV2.Domain.Users;
 using PpmV2.Infrastructure.Identity;
 using PpmV2.Infrastructure.Persistence;
 
-
 namespace PpmV2.Infrastructure.Admin.Seeding;
 
 public static class DemoUsersSeeder
@@ -27,40 +26,23 @@ public static class DemoUsersSeeder
         }
 
         var password = configuration["Seeding:DemoUsers:DefaultPassword"] ?? "Pass123$";
-
-        // 3 Coordinators, 3 Festmitarbeiter, 3 Honorarkraft
-        var demoUsers = new (string Email, string Firstname, string Lastname, UserRole Role)[]
-        {
-            ("koord1@test.com", "Koordinator", "One",   UserRole.Coordinator),
-            ("koord2@test.com", "Koordinator", "Two",   UserRole.Coordinator),
-            ("koord3@test.com", "Koordinator", "Three", UserRole.Coordinator),
-
-            ("fest1@test.com",  "Fest", "One",   UserRole.Festmitarbeiter),
-            ("fest2@test.com",  "Fest", "Two",   UserRole.Festmitarbeiter),
-            ("fest3@test.com",  "Fest", "Three", UserRole.Festmitarbeiter),
-
-            ("hon1@test.com",   "Honorar", "One",   UserRole.Honorarkraft),
-            ("hon2@test.com",   "Honorar", "Two",   UserRole.Honorarkraft),
-            ("hon3@test.com",   "Honorar", "Three", UserRole.Honorarkraft),
-        };
-
         var now = timeProvider.GetUtcNow().UtcDateTime;
         var createdCount = 0;
         var updatedCount = 0;
 
-        foreach (var u in demoUsers)
+        foreach (var person in DemoCatalog.People)
         {
-            var existing = await userManager.FindByEmailAsync(u.Email);
+            var existing = await FindPersonAsync(userManager, person.Email);
 
             if (existing is null)
             {
                 var user = new AppUser
                 {
-                    UserName = u.Email,
-                    Email = u.Email,
+                    UserName = person.Email,
+                    Email = person.Email,
                     EmailConfirmed = true,
                     Status = UserStatus.Approved,
-                    Role = u.Role,
+                    Role = person.Role,
                     IsActive = true,
                     IsProfileCompleted = true
                 };
@@ -70,14 +52,14 @@ public static class DemoUsersSeeder
                 {
                     logger.LogWarning(
                         "Failed creating demo user {Email}. Errors: {Errors}",
-                        u.Email,
+                        person.Email,
                         string.Join(", ", createResult.Errors.Select(e => e.Description)));
                     continue;
                 }
 
                 existing = user;
                 createdCount++;
-                logger.LogInformation("Created demo user: {Email}", u.Email);
+                logger.LogInformation("Created demo user: {Email}", person.Email);
             }
             else
             {
@@ -85,7 +67,7 @@ public static class DemoUsersSeeder
 
                 if (!existing.EmailConfirmed) { existing.EmailConfirmed = true; changed = true; }
                 if (existing.Status != UserStatus.Approved) { existing.Status = UserStatus.Approved; changed = true; }
-                if (existing.Role != u.Role) { existing.Role = u.Role; changed = true; }
+                if (existing.Role != person.Role) { existing.Role = person.Role; changed = true; }
                 if (!existing.IsActive) { existing.IsActive = true; changed = true; }
                 if (!existing.IsProfileCompleted) { existing.IsProfileCompleted = true; changed = true; }
 
@@ -96,7 +78,7 @@ public static class DemoUsersSeeder
                     {
                         logger.LogWarning(
                             "Failed updating demo user {Email}. Errors: {Errors}",
-                            u.Email,
+                            existing.Email,
                             string.Join(", ", updateResult.Errors.Select(e => e.Description)));
                     }
                     else
@@ -106,8 +88,7 @@ public static class DemoUsersSeeder
                 }
             }
 
-            // Ensure role assignment in Identity
-            var roleName = u.Role.ToString();
+            var roleName = person.Role.ToString();
             if (!await userManager.IsInRoleAsync(existing, roleName))
             {
                 var addRole = await userManager.AddToRoleAsync(existing, roleName);
@@ -116,12 +97,11 @@ public static class DemoUsersSeeder
                     logger.LogWarning(
                         "Failed assigning role {Role} to {Email}. Errors: {Errors}",
                         roleName,
-                        u.Email,
+                        existing.Email,
                         string.Join(", ", addRole.Errors.Select(e => e.Description)));
                 }
             }
 
-            // Ensure UserProfile exists so admin list shows firstname/lastname
             var profileExists = await dbContext.UserProfiles
                 .AnyAsync(p => p.IdentityUserId == existing.Id);
 
@@ -130,19 +110,37 @@ public static class DemoUsersSeeder
                 dbContext.UserProfiles.Add(new UserProfile
                 {
                     IdentityUserId = existing.Id,
-                    Email = u.Email,
-                    Firstname = u.Firstname,
-                    Lastname = u.Lastname,
+                    Email = existing.Email ?? person.Email,
+                    Firstname = person.Firstname,
+                    Lastname = person.Lastname,
                     IsActive = true,
-                    CreatedAt = now
+                    CreatedAt = now,
+                    UpdatedAt = now
                 });
 
-                logger.LogInformation("Created UserProfile for demo user: {Email}", u.Email);
+                logger.LogInformation("Created UserProfile for demo user: {Email}", existing.Email);
             }
         }
 
         await dbContext.SaveChangesAsync();
 
         logger.LogInformation("DemoUsersSeeder finished. Created: {Created}, Updated: {Updated}", createdCount, updatedCount);
+    }
+
+    /// <summary>
+    /// Finds the current address first, then the previous demo address.
+    /// Never creates a second account for the same person.
+    /// </summary>
+    internal static async Task<AppUser?> FindPersonAsync(UserManager<AppUser> userManager, string email)
+    {
+        var person = DemoCatalog.People.FirstOrDefault(p =>
+            p.Email.Equals(email, StringComparison.OrdinalIgnoreCase)
+            || p.LegacyEmail.Equals(email, StringComparison.OrdinalIgnoreCase));
+
+        if (person is null)
+            return await userManager.FindByEmailAsync(email);
+
+        return await userManager.FindByEmailAsync(person.Email)
+            ?? await userManager.FindByEmailAsync(person.LegacyEmail);
     }
 }

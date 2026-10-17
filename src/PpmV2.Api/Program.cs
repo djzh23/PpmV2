@@ -276,10 +276,21 @@ using (var scope = app.Services.CreateScope())
 
     await RolesSeeder.SeedAsync(roleManager, loggerFactory.CreateLogger("RolesSeeder"));
     await AdminSeeder.SeedAsync(userManager, dbContext, configuration, timeProvider, loggerFactory.CreateLogger("AdminSeeder"));
-    await DemoUsersSeeder.SeedAsync(userManager, dbContext, configuration, timeProvider, loggerFactory.CreateLogger("DemoUsersSeeder"));
-    await LocationsSeeder.SeedAsync(dbContext, configuration, loggerFactory.CreateLogger("LocationsSeeder"), timeProvider);
-    await ShiftsSeeder.SeedAsync(dbContext, userManager, configuration, timeProvider, loggerFactory.CreateLogger("ShiftsSeeder"));
-    await UserLocationAssignmentSeeder.SeedAsync(dbContext, userManager, configuration, timeProvider, loggerFactory.CreateLogger("UserLocationAssignmentSeeder"));
+
+    var replaced = await DemoContentReplacer.TryReplaceAsync(
+        userManager,
+        dbContext,
+        configuration,
+        timeProvider,
+        loggerFactory.CreateLogger("DemoContentReplacer"));
+
+    if (!replaced)
+    {
+        await DemoUsersSeeder.SeedAsync(userManager, dbContext, configuration, timeProvider, loggerFactory.CreateLogger("DemoUsersSeeder"));
+        await LocationsSeeder.SeedAsync(dbContext, configuration, loggerFactory.CreateLogger("LocationsSeeder"), timeProvider);
+        await ShiftsSeeder.SeedAsync(dbContext, userManager, configuration, timeProvider, loggerFactory.CreateLogger("ShiftsSeeder"));
+        await UserLocationAssignmentSeeder.SeedAsync(dbContext, userManager, configuration, timeProvider, loggerFactory.CreateLogger("UserLocationAssignmentSeeder"));
+    }
 }
 
 

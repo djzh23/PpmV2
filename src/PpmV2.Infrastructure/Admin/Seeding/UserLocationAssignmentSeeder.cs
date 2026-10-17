@@ -30,48 +30,45 @@ public static class UserLocationAssignmentSeeder
             return;
         }
 
-        var locations = await dbContext.Locations.OrderBy(l => l.Name).ToListAsync();
-        if (locations.Count == 0)
-        {
-            logger.LogWarning("UserLocationAssignmentSeeder skipped: no locations found.");
-            return;
-        }
+        var placeNames = DemoCatalog.Places.Select(p => p.Name).ToArray();
+        var locations = await dbContext.Locations
+            .Where(l => placeNames.Contains(l.Name))
+            .ToDictionaryAsync(l => l.Name, l => l.Id);
 
-        var fest1 = await userManager.FindByEmailAsync("fest1@test.com");
-        var fest2 = await userManager.FindByEmailAsync("fest2@test.com");
-        var koord1 = await userManager.FindByEmailAsync("koord1@test.com");
-
-        if (fest1 is null || fest2 is null)
+        if (locations.Count != DemoCatalog.Places.Length)
         {
-            logger.LogWarning("UserLocationAssignmentSeeder skipped: demo Festmitarbeiter not found.");
+            logger.LogWarning("UserLocationAssignmentSeeder skipped: the fictional locations are not all present.");
             return;
         }
 
         var now = timeProvider.GetUtcNow().UtcDateTime;
+        var assignments = new List<UserLocationAssignment>();
 
-        // fest1 is assigned to the first 6 locations
-        var fest1Assignments = locations.Take(6).Select(l => new UserLocationAssignment
+        foreach (var plan in DemoCatalog.Assignments)
         {
-            UserId = fest1.Id,
-            LocationId = l.Id,
-            AssignedAt = now
-        });
+            var user = await DemoUsersSeeder.FindPersonAsync(userManager, plan.Email);
+            if (user is null)
+            {
+                logger.LogWarning("UserLocationAssignmentSeeder skipped: demo user {Email} was not found.", plan.Email);
+                return;
+            }
 
-        // fest2 is assigned to a different set (locations 3-9, overlapping with fest1 in some)
-        var fest2Assignments = locations.Skip(2).Take(6).Select(l => new UserLocationAssignment
-        {
-            UserId = fest2.Id,
-            LocationId = l.Id,
-            AssignedAt = now
-        });
+            foreach (var locationName in plan.LocationNames)
+            {
+                assignments.Add(new UserLocationAssignment
+                {
+                    UserId = user.Id,
+                    LocationId = locations[locationName],
+                    AssignedAt = now
+                });
+            }
+        }
 
-        // koord1 gets no assignments — Coordinators see all locations implicitly
-
-        dbContext.UserLocationAssignments.AddRange(fest1Assignments);
-        dbContext.UserLocationAssignments.AddRange(fest2Assignments);
+        dbContext.UserLocationAssignments.AddRange(assignments);
         await dbContext.SaveChangesAsync();
 
         logger.LogInformation(
-            "UserLocationAssignmentSeeder finished. fest1: 6 locations, fest2: 6 locations.");
+            "UserLocationAssignmentSeeder finished. Assigned {Count} location links.",
+            assignments.Count);
     }
 }

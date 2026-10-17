@@ -10,13 +10,6 @@ namespace PpmV2.Infrastructure.Admin.Seeding;
 
 public static class ShiftsSeeder
 {
-    private static readonly Guid NachtschichtId = new("11111111-0001-0000-0000-000000000000");
-    private static readonly Guid TagdienstId    = new("11111111-0002-0000-0000-000000000000");
-    private static readonly Guid WochenendId    = new("11111111-0003-0000-0000-000000000000");
-    private static readonly Guid AbendId        = new("11111111-0004-0000-0000-000000000000");
-    private static readonly Guid FruehId        = new("11111111-0005-0000-0000-000000000000");
-    private static readonly Guid AktivId        = new("11111111-0006-0000-0000-000000000000");
-
     public static async Task SeedAsync(
         AppDbContext dbContext,
         UserManager<AppUser> userManager,
@@ -31,145 +24,77 @@ public static class ShiftsSeeder
             return;
         }
 
-        if (await dbContext.Einsaetze.AnyAsync(e => e.Id == NachtschichtId))
+        if (await dbContext.Einsaetze.AnyAsync(e => e.Id == DemoCatalog.MarkerShiftId || e.Id == DemoCatalog.LegacyShiftId))
         {
             logger.LogInformation("Demo shifts already seeded. Skipping.");
             return;
         }
 
-        var locations = await dbContext.Locations.ToListAsync();
-        if (locations.Count == 0)
+        var placeNames = DemoCatalog.Places.Select(p => p.Name).ToArray();
+        var locations = await dbContext.Locations
+            .Where(l => placeNames.Contains(l.Name))
+            .ToDictionaryAsync(l => l.Name, l => l.Id);
+
+        if (locations.Count != DemoCatalog.Places.Length)
         {
-            logger.LogWarning("ShiftsSeeder skipped: no locations found.");
+            logger.LogWarning("ShiftsSeeder skipped: the fictional locations are not all present.");
             return;
         }
 
-        // Resolve demo user IDs by email
-        var koord1 = await userManager.FindByEmailAsync("koord1@test.com");
-        var koord2 = await userManager.FindByEmailAsync("koord2@test.com");
-        var fest1  = await userManager.FindByEmailAsync("fest1@test.com");
-        var fest2  = await userManager.FindByEmailAsync("fest2@test.com");
-        var hon1   = await userManager.FindByEmailAsync("hon1@test.com");
-        var hon2   = await userManager.FindByEmailAsync("hon2@test.com");
-
-        if (koord1 is null || fest1 is null)
+        var emails = DemoCatalog.Shifts.SelectMany(s => s.Members).Select(m => m.Email).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+        var users = new Dictionary<string, Guid>(StringComparer.OrdinalIgnoreCase);
+        foreach (var email in emails)
         {
-            logger.LogWarning("ShiftsSeeder skipped: demo users not found. Run DemoUsersSeeder first.");
-            return;
-        }
-
-        var now = timeProvider.GetUtcNow().UtcDateTime;
-
-        var shifts = new List<Shift>
-        {
-            // Draft shifts — future, not yet published
-            new()
+            var user = await DemoUsersSeeder.FindPersonAsync(userManager, email);
+            if (user is null)
             {
-                Id = NachtschichtId,
-                Title = "Nachtschicht Elbpark",
-                Description = "Reguläre Nachtschicht mit Einlasskontrolle.",
-                StartAtUtc = now.AddDays(3).Date.AddHours(22),
-                EndAtUtc   = now.AddDays(4).Date.AddHours(6),
-                LocationId = locations[0].Id,
-                Status     = ShiftStatus.Draft,
-                Participants = fest1 is not null && hon1 is not null ? new List<ShiftParticipant>
-                {
-                    new() { UserId = fest1.Id, Role = ShiftRole.Leader },
-                    new() { UserId = hon1.Id,  Role = ShiftRole.Member }
-                } : new List<ShiftParticipant>()
-            },
-            new()
-            {
-                Id = TagdienstId,
-                Title = "Tagdienst Nordlicht",
-                Description = "Unterstützung bei der Essensausgabe und Betreuung.",
-                StartAtUtc = now.AddDays(5).Date.AddHours(8),
-                EndAtUtc   = now.AddDays(5).Date.AddHours(16),
-                LocationId = locations[1].Id,
-                Status     = ShiftStatus.Draft,
-                Participants = fest2 is not null ? new List<ShiftParticipant>
-                {
-                    new() { UserId = fest2.Id, Role = ShiftRole.Leader }
-                } : new List<ShiftParticipant>()
-            },
-            new()
-            {
-                Id = WochenendId,
-                Title = "Wochenendschicht Süderelbe",
-                Description = null,
-                StartAtUtc = now.AddDays(8).Date.AddHours(10),
-                EndAtUtc   = now.AddDays(8).Date.AddHours(18),
-                LocationId = locations[2].Id,
-                Status     = ShiftStatus.Draft,
-                Participants = new List<ShiftParticipant>()
-            },
-
-            // Planned shifts — published, participants assigned
-            new()
-            {
-                Id = AbendId,
-                Title = "Abendbetreuung Stadtdeich",
-                Description = "Abendliche Betreuungsrunde und Sicherheitskontrolle.",
-                StartAtUtc = now.AddDays(1).Date.AddHours(18),
-                EndAtUtc   = now.AddDays(1).Date.AddHours(23),
-                LocationId = locations[3].Id,
-                Status     = ShiftStatus.Planned,
-                Participants = koord2 is not null && hon1 is not null && hon2 is not null
-                    ? new List<ShiftParticipant>
-                    {
-                        new() { UserId = koord2.Id, Role = ShiftRole.Leader },
-                        new() { UserId = hon1.Id,   Role = ShiftRole.Member },
-                        new() { UserId = hon2.Id,   Role = ShiftRole.Support }
-                    }
-                    : new List<ShiftParticipant>()
-            },
-            new()
-            {
-                Id = FruehId,
-                Title = "Frühdienst Sonnenhof",
-                Description = "Frühschicht mit Frühstücksausgabe.",
-                StartAtUtc = now.AddDays(2).Date.AddHours(6),
-                EndAtUtc   = now.AddDays(2).Date.AddHours(14),
-                LocationId = locations[4].Id,
-                Status     = ShiftStatus.Planned,
-                Participants = koord1 is not null && fest1 is not null && fest2 is not null
-                    ? new List<ShiftParticipant>
-                    {
-                        new() { UserId = koord1.Id, Role = ShiftRole.Leader },
-                        new() { UserId = fest1.Id,  Role = ShiftRole.Member },
-                        new() { UserId = fest2.Id,  Role = ShiftRole.Member }
-                    }
-                    : new List<ShiftParticipant>()
-            },
-
-            // Active shift — currently running
-            new()
-            {
-                Id = AktivId,
-                Title = "Laufende Schicht Elbbrücken",
-                Description = "Aktive Schicht — Einlasskontrolle und Betreuung.",
-                StartAtUtc = now.AddHours(-2),
-                EndAtUtc   = now.AddHours(4),
-                LocationId = locations[5].Id,
-                Status     = ShiftStatus.Active,
-                Participants = koord2 is not null && hon1 is not null
-                    ? new List<ShiftParticipant>
-                    {
-                        new() { UserId = koord2.Id, Role = ShiftRole.Leader },
-                        new() { UserId = hon1.Id,   Role = ShiftRole.Member }
-                    }
-                    : new List<ShiftParticipant>()
+                logger.LogWarning("ShiftsSeeder skipped: demo user {Email} was not found.", email);
+                return;
             }
-        };
+
+            users[email] = user.Id;
+        }
+
+        var utcNow = timeProvider.GetUtcNow().UtcDateTime;
+        var shifts = DemoCatalog.Shifts.Select(plan => BuildShift(plan, utcNow, locations, users)).ToList();
 
         dbContext.Einsaetze.AddRange(shifts);
         await dbContext.SaveChangesAsync();
 
         logger.LogInformation(
-            "ShiftsSeeder finished. Seeded {Count} shifts ({Draft} Draft, {Planned} Planned, {Active} Active).",
-            shifts.Count,
-            shifts.Count(s => s.Status == ShiftStatus.Draft),
-            shifts.Count(s => s.Status == ShiftStatus.Planned),
-            shifts.Count(s => s.Status == ShiftStatus.Active));
+            "ShiftsSeeder finished. Seeded {Count} shifts.",
+            shifts.Count);
+    }
+
+    private static Shift BuildShift(
+        DemoShiftPlan plan,
+        DateTime utcNow,
+        IReadOnlyDictionary<string, Guid> locations,
+        IReadOnlyDictionary<string, Guid> users)
+    {
+        var start = plan.AroundNow
+            ? utcNow.AddHours(-2)
+            : DemoClock.AtBerlin(utcNow, plan.StartDayOffset, plan.StartHour);
+        var end = plan.AroundNow
+            ? utcNow.AddHours(6)
+            : DemoClock.AtBerlin(utcNow, plan.EndDayOffset, plan.EndHour);
+
+        return new Shift
+        {
+            Id = plan.Id,
+            Title = plan.Title,
+            Description = plan.Description,
+            StartAtUtc = start,
+            EndAtUtc = end,
+            LocationId = locations[plan.LocationName],
+            Status = plan.Status,
+            Participants = plan.Members.Select(member => new ShiftParticipant
+            {
+                UserId = users[member.Email],
+                Role = member.Role,
+                ConfirmationStatus = member.Status,
+                RespondedAt = member.Status == ParticipantConfirmationStatus.Invited ? null : utcNow
+            }).ToList()
+        };
     }
 }

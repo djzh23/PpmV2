@@ -33,7 +33,8 @@ public class ShiftParticipantConfiguration : IEntityTypeConfiguration<ShiftParti
         builder.Property(p => p.ConfirmationStatus)
             .HasConversion<int>()
             .IsRequired()
-            .HasDefaultValue(ParticipantConfirmationStatus.Accepted);
+            .HasDefaultValue(ParticipantConfirmationStatus.Accepted)
+            .HasSentinel((ParticipantConfirmationStatus)(-1));
 
         builder.Property(p => p.RespondedAt);
 
