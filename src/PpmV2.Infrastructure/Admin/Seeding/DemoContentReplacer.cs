@@ -46,18 +46,15 @@ public static class DemoContentReplacer
             return;
         }
 
-        var strangerCount = await CountStrangersAsync(dbContext, configuration);
-        if (strangerCount > 0)
-        {
-            logger.LogWarning(
-                "AddFictionalDemo aborted. {Count} accounts are outside the admin and demo set. Nothing was changed.",
-                strangerCount);
-            return;
-        }
-
         try
         {
             await using var transaction = await dbContext.Database.BeginTransactionAsync();
+
+            await RemoveNamedProfilesAsync(userManager, dbContext, configuration, logger);
+
+            var strangerCount = await CountStrangersAsync(dbContext, configuration);
+            if (strangerCount > 0)
+                throw new InvalidOperationException($"AddFictionalDemo aborted. {strangerCount} accounts are outside the admin and demo set. Nothing was changed.");
 
             await RenameDemoUsersAsync(userManager, dbContext, timeProvider, logger);
             await LocationsSeeder.InsertMissingAsync(dbContext, timeProvider, logger);
@@ -157,6 +154,70 @@ public static class DemoContentReplacer
             dbContext.ChangeTracker.Clear();
             logger.LogError(ex, "RemoveLegacyDemo failed. The transaction was rolled back and the previous rows stay in place.");
         }
+    }
+
+    private static async Task RemoveNamedProfilesAsync(
+        UserManager<AppUser> userManager,
+        AppDbContext dbContext,
+        IConfiguration configuration,
+        ILogger logger)
+    {
+        var names = configuration.GetSection("Seeding:AddFictionalDemo:RemoveProfileNames").Get<string[]>() ?? [];
+        foreach (var fullName in names)
+        {
+            var splitAt = fullName.LastIndexOf(' ');
+            if (splitAt <= 0 || splitAt == fullName.Length - 1)
+                throw new InvalidOperationException($"The profile name '{fullName}' needs a first name and a last name.");
+
+            var firstname = fullName[..splitAt].Trim();
+            var lastname = fullName[(splitAt + 1)..].Trim();
+            var matches = await dbContext.UserProfiles
+                .AsNoTracking()
+                .Where(p => p.Firstname.ToLower() == firstname.ToLower() && p.Lastname.ToLower() == lastname.ToLower())
+                .Select(p => new { p.IdentityUserId, p.Email })
+                .ToListAsync();
+
+            if (matches.Count == 0)
+            {
+                logger.LogInformation("No account named {Name} was found.", fullName);
+                continue;
+            }
+
+            if (matches.Count != 1)
+                throw new InvalidOperationException($"More than one account is named {fullName}. Nothing was changed.");
+
+            var match = matches[0];
+            if (IsProtectedAccount(match.Email, configuration))
+                throw new InvalidOperationException($"The account named {fullName} is an admin or demo account. Nothing was changed.");
+
+            var user = await userManager.FindByIdAsync(match.IdentityUserId.ToString());
+            if (user is null)
+                throw new InvalidOperationException($"The account named {fullName} has a profile but no login. Nothing was changed.");
+
+            await dbContext.EinsatzParticipants.Where(p => p.UserId == user.Id).ExecuteDeleteAsync();
+            await dbContext.UserLocationAssignments.Where(a => a.UserId == user.Id).ExecuteDeleteAsync();
+            await dbContext.RefreshTokens.Where(t => t.UserId == user.Id).ExecuteDeleteAsync();
+
+            var deleteResult = await userManager.DeleteAsync(user);
+            if (!deleteResult.Succeeded)
+                throw new InvalidOperationException($"Could not remove the account named {fullName}: {string.Join(", ", deleteResult.Errors.Select(e => e.Description))}");
+
+            logger.LogInformation("Removed extra account {Name}.", fullName);
+        }
+    }
+
+    private static bool IsProtectedAccount(string? email, IConfiguration configuration)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+            return false;
+
+        var adminEmail = configuration["AdminSeed:Email"];
+        if (!string.IsNullOrWhiteSpace(adminEmail) && email.Equals(adminEmail, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        return DemoCatalog.People.Any(person =>
+            email.Equals(person.Email, StringComparison.OrdinalIgnoreCase)
+            || email.Equals(person.LegacyEmail, StringComparison.OrdinalIgnoreCase));
     }
 
     private static async Task<bool> IsCatalogAlreadyPresentAsync(AppDbContext dbContext)
