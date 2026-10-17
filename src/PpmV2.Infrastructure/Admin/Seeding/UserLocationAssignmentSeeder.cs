@@ -30,48 +30,81 @@ public static class UserLocationAssignmentSeeder
             return;
         }
 
-        var locations = await dbContext.Locations.OrderBy(l => l.Name).ToListAsync();
-        if (locations.Count == 0)
+        var placeNames = DemoCatalog.Places.Select(p => p.Name).ToArray();
+        var locations = await dbContext.Locations
+            .Where(l => placeNames.Contains(l.Name))
+            .ToDictionaryAsync(l => l.Name, l => l.Id);
+
+        if (locations.Count != DemoCatalog.Places.Length)
         {
-            logger.LogWarning("UserLocationAssignmentSeeder skipped: no locations found.");
+            logger.LogWarning("UserLocationAssignmentSeeder skipped: the fictional locations are not all present.");
             return;
         }
 
-        var fest1 = await userManager.FindByEmailAsync("fest1@test.com");
-        var fest2 = await userManager.FindByEmailAsync("fest2@test.com");
-        var koord1 = await userManager.FindByEmailAsync("koord1@test.com");
+        await InsertMissingLinksAsync(dbContext, userManager, timeProvider, logger, strict: false);
+    }
 
-        if (fest1 is null || fest2 is null)
-        {
-            logger.LogWarning("UserLocationAssignmentSeeder skipped: demo Festmitarbeiter not found.");
-            return;
-        }
+    internal static async Task InsertMissingLinksAsync(
+        AppDbContext dbContext,
+        UserManager<AppUser> userManager,
+        TimeProvider timeProvider,
+        ILogger logger,
+        bool strict)
+    {
+        var placeNames = DemoCatalog.Places.Select(p => p.Name).ToArray();
+        var locations = await dbContext.Locations
+            .Where(l => placeNames.Contains(l.Name))
+            .ToDictionaryAsync(l => l.Name, l => l.Id);
+
+        if (locations.Count != DemoCatalog.Places.Length)
+            throw new InvalidOperationException("The fictional locations are not all present, so the new assignments were not inserted.");
+
+        var existing = await dbContext.UserLocationAssignments
+            .Select(a => new { a.UserId, a.LocationId })
+            .ToListAsync();
+        var existingPairs = existing.Select(a => (a.UserId, a.LocationId)).ToHashSet();
 
         var now = timeProvider.GetUtcNow().UtcDateTime;
+        var assignments = new List<UserLocationAssignment>();
 
-        // fest1 is assigned to the first 6 locations
-        var fest1Assignments = locations.Take(6).Select(l => new UserLocationAssignment
+        foreach (var plan in DemoCatalog.Assignments)
         {
-            UserId = fest1.Id,
-            LocationId = l.Id,
-            AssignedAt = now
-        });
+            var user = await DemoUsersSeeder.FindPersonAsync(userManager, plan.Email);
+            if (user is null)
+            {
+                if (strict)
+                    throw new InvalidOperationException($"Demo user {plan.Email} was not found, so the new assignments were not inserted.");
 
-        // fest2 is assigned to a different set (locations 3-9, overlapping with fest1 in some)
-        var fest2Assignments = locations.Skip(2).Take(6).Select(l => new UserLocationAssignment
+                logger.LogWarning("UserLocationAssignmentSeeder skipped: demo user {Email} was not found.", plan.Email);
+                return;
+            }
+
+            foreach (var locationName in plan.LocationNames)
+            {
+                var pair = (user.Id, locations[locationName]);
+                if (!existingPairs.Add(pair))
+                    continue;
+
+                assignments.Add(new UserLocationAssignment
+                {
+                    UserId = pair.Item1,
+                    LocationId = pair.Item2,
+                    AssignedAt = now
+                });
+            }
+        }
+
+        if (assignments.Count == 0)
         {
-            UserId = fest2.Id,
-            LocationId = l.Id,
-            AssignedAt = now
-        });
+            logger.LogInformation("Fictional location links are already present.");
+            return;
+        }
 
-        // koord1 gets no assignments — Coordinators see all locations implicitly
-
-        dbContext.UserLocationAssignments.AddRange(fest1Assignments);
-        dbContext.UserLocationAssignments.AddRange(fest2Assignments);
+        dbContext.UserLocationAssignments.AddRange(assignments);
         await dbContext.SaveChangesAsync();
 
         logger.LogInformation(
-            "UserLocationAssignmentSeeder finished. fest1: 6 locations, fest2: 6 locations.");
+            "UserLocationAssignmentSeeder inserted {Count} location links.",
+            assignments.Count);
     }
 }

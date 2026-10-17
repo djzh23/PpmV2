@@ -276,10 +276,14 @@ using (var scope = app.Services.CreateScope())
 
     await RolesSeeder.SeedAsync(roleManager, loggerFactory.CreateLogger("RolesSeeder"));
     await AdminSeeder.SeedAsync(userManager, dbContext, configuration, timeProvider, loggerFactory.CreateLogger("AdminSeeder"));
+
+    var seedingLogger = loggerFactory.CreateLogger("DemoContentReplacer");
+    await DemoContentReplacer.TryAddFictionalDemoAsync(userManager, dbContext, configuration, timeProvider, seedingLogger);
     await DemoUsersSeeder.SeedAsync(userManager, dbContext, configuration, timeProvider, loggerFactory.CreateLogger("DemoUsersSeeder"));
     await LocationsSeeder.SeedAsync(dbContext, configuration, loggerFactory.CreateLogger("LocationsSeeder"), timeProvider);
     await ShiftsSeeder.SeedAsync(dbContext, userManager, configuration, timeProvider, loggerFactory.CreateLogger("ShiftsSeeder"));
     await UserLocationAssignmentSeeder.SeedAsync(dbContext, userManager, configuration, timeProvider, loggerFactory.CreateLogger("UserLocationAssignmentSeeder"));
+    await DemoContentReplacer.TryRemoveLegacyDemoAsync(dbContext, configuration, seedingLogger);
 }
 
 
