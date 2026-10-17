@@ -46,18 +46,15 @@ public static class DemoContentReplacer
             return;
         }
 
-        var strangerCount = await CountStrangersAsync(dbContext, configuration);
-        if (strangerCount > 0)
-        {
-            logger.LogWarning(
-                "AddFictionalDemo aborted. {Count} accounts are outside the admin and demo set. Nothing was changed.",
-                strangerCount);
-            return;
-        }
-
         try
         {
             await using var transaction = await dbContext.Database.BeginTransactionAsync();
+
+            await RemoveExtraAccountsAsync(userManager, dbContext, configuration, logger);
+
+            var strangerCount = await CountStrangersAsync(dbContext, configuration);
+            if (strangerCount > 0)
+                throw new InvalidOperationException($"AddFictionalDemo aborted. {strangerCount} accounts are outside the admin and demo set. Nothing was changed.");
 
             await RenameDemoUsersAsync(userManager, dbContext, timeProvider, logger);
             await LocationsSeeder.InsertMissingAsync(dbContext, timeProvider, logger);
@@ -157,6 +154,50 @@ public static class DemoContentReplacer
             dbContext.ChangeTracker.Clear();
             logger.LogError(ex, "RemoveLegacyDemo failed. The transaction was rolled back and the previous rows stay in place.");
         }
+    }
+
+    private static async Task RemoveExtraAccountsAsync(
+        UserManager<AppUser> userManager,
+        AppDbContext dbContext,
+        IConfiguration configuration,
+        ILogger logger)
+    {
+        if (!IsEnabled(configuration, "Seeding:AddFictionalDemo:RemoveExtraAccounts"))
+            return;
+
+        var users = await dbContext.Users.AsNoTracking().Select(u => new { u.Id, u.Email }).ToListAsync();
+        var extras = users.Where(u => !IsProtectedAccount(u.Email, configuration)).ToList();
+        foreach (var extra in extras)
+        {
+            var user = await userManager.FindByIdAsync(extra.Id.ToString());
+            if (user is null)
+                continue;
+
+            await dbContext.EinsatzParticipants.Where(p => p.UserId == user.Id).ExecuteDeleteAsync();
+            await dbContext.UserLocationAssignments.Where(a => a.UserId == user.Id).ExecuteDeleteAsync();
+            await dbContext.RefreshTokens.Where(t => t.UserId == user.Id).ExecuteDeleteAsync();
+
+            var deleteResult = await userManager.DeleteAsync(user);
+            if (!deleteResult.Succeeded)
+                throw new InvalidOperationException($"Could not remove an extra account: {string.Join(", ", deleteResult.Errors.Select(e => e.Description))}");
+        }
+
+        if (extras.Count > 0)
+            logger.LogInformation("Removed {Count} extra accounts.", extras.Count);
+    }
+
+    private static bool IsProtectedAccount(string? email, IConfiguration configuration)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+            return false;
+
+        var adminEmail = configuration["AdminSeed:Email"];
+        if (!string.IsNullOrWhiteSpace(adminEmail) && email.Equals(adminEmail, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        return DemoCatalog.People.Any(person =>
+            email.Equals(person.Email, StringComparison.OrdinalIgnoreCase)
+            || email.Equals(person.LegacyEmail, StringComparison.OrdinalIgnoreCase));
     }
 
     private static async Task<bool> IsCatalogAlreadyPresentAsync(AppDbContext dbContext)
