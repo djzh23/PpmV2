@@ -46,7 +46,8 @@ public sealed class PpmV2WebApplicationFactory : WebApplicationFactory<Program>
         builder.UseSetting("Seeding:DemoUsers:Enabled", "false");
         builder.UseSetting("Seeding:Locations:Enabled", "false");
         builder.UseSetting("Seeding:Shifts:Enabled", "false");
-        builder.UseSetting("Seeding:ReplaceDemoContent:Enabled", "false");
+        builder.UseSetting("Seeding:AddFictionalDemo:Enabled", "false");
+        builder.UseSetting("Seeding:RemoveLegacyDemo:Enabled", "false");
 
         builder.ConfigureServices(services =>
         {

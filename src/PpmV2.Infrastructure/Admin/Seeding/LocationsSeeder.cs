@@ -27,9 +27,21 @@ public static class LocationsSeeder
             return;
         }
 
+        await InsertMissingAsync(dbContext, timeProvider, logger);
+    }
+
+    internal static async Task InsertMissingAsync(AppDbContext dbContext, TimeProvider timeProvider, ILogger logger)
+    {
+        var existingNames = await dbContext.Locations.Select(l => l.Name).ToListAsync();
+        var missing = DemoCatalog.Places
+            .Where(place => !existingNames.Contains(place.Name, StringComparer.Ordinal))
+            .ToArray();
+        if (missing.Length == 0)
+            return;
+
         var now = timeProvider.GetUtcNow().UtcDateTime;
 
-        dbContext.Locations.AddRange(DemoCatalog.Places.Select(place => new Location
+        dbContext.Locations.AddRange(missing.Select(place => new Location
         {
             Name = place.Name,
             District = place.District,
@@ -43,6 +55,6 @@ public static class LocationsSeeder
 
         await dbContext.SaveChangesAsync();
 
-        logger.LogInformation("LocationsSeeder finished. Seeded {Count} locations.", DemoCatalog.Places.Length);
+        logger.LogInformation("LocationsSeeder inserted {Count} missing locations.", missing.Length);
     }
 }

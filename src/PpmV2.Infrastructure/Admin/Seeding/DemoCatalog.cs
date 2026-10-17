@@ -12,7 +12,33 @@ public static class DemoCatalog
 {
     public const string LegacyLocationName = "Wohnanlage Elbpark";
 
-    public static readonly Guid LegacyShiftId = new("11111111-0001-0000-0000-000000000000");
+    public static readonly string[] LegacyPlaceNames =
+    [
+        "Wohnanlage Elbpark",
+        "Sozialunterkunft Nordlicht",
+        "Wohnzentrum Süderelbe",
+        "Unterkunft Am Stadtdeich",
+        "Wohnhaus Sonnenhof",
+        "Erstaufnahme Elbbrücken",
+        "Gemeinschaftsunterkunft Moorfleet",
+        "UPH Alsterblick",
+        "Wohnanlage Grünau",
+        "Unterkunft Am Gleisfeld",
+        "Wohnunterkunft Hafenrand",
+        "Wohnprojekt Regenbogenhof",
+    ];
+
+    public static readonly Guid[] LegacyShiftIds =
+    [
+        new("11111111-0001-0000-0000-000000000000"),
+        new("11111111-0002-0000-0000-000000000000"),
+        new("11111111-0003-0000-0000-000000000000"),
+        new("11111111-0004-0000-0000-000000000000"),
+        new("11111111-0005-0000-0000-000000000000"),
+        new("11111111-0006-0000-0000-000000000000"),
+    ];
+
+    public static readonly Guid LegacyShiftId = LegacyShiftIds[0];
 
     public static readonly DemoPerson[] People =
     [

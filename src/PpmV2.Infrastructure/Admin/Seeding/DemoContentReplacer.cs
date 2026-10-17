@@ -8,56 +8,51 @@ using PpmV2.Infrastructure.Persistence;
 namespace PpmV2.Infrastructure.Admin.Seeding;
 
 /// <summary>
-/// One-shot replacement of the old demo shifts, participants, assignments and
-/// locations. Accounts stay. The admin account is never renamed.
-/// Does nothing unless Seeding:ReplaceDemoContent:Enabled is true.
+/// Two separate switches for the same database.
+/// AddFictionalDemo inserts the new catalog and renames the nine demo accounts.
+/// RemoveLegacyDemo deletes only the previous demo rows, and only after the new catalog is present.
+/// Both stay off unless configured. Accounts outside the admin and demo set block either step.
 /// </summary>
 public static class DemoContentReplacer
 {
-    public static async Task<bool> TryReplaceAsync(
+    public static async Task TryAddFictionalDemoAsync(
         UserManager<AppUser> userManager,
         AppDbContext dbContext,
         IConfiguration configuration,
         TimeProvider timeProvider,
         ILogger logger)
     {
-        if (!IsEnabled(configuration, "Seeding:ReplaceDemoContent:Enabled"))
+        if (!IsEnabled(configuration, "Seeding:AddFictionalDemo:Enabled"))
         {
-            logger.LogInformation("ReplaceDemoContent is off. Existing rows stay as they are.");
-            return false;
+            logger.LogInformation("AddFictionalDemo is off. Existing rows stay as they are.");
+            return;
         }
 
         if (!dbContext.Database.IsRelational())
         {
-            logger.LogWarning("ReplaceDemoContent needs a relational database. Nothing was deleted.");
-            return false;
-        }
-
-        if (!SeedFlagsAllowRefill(configuration))
-        {
-            logger.LogWarning("ReplaceDemoContent skipped because a demo seed flag is off. Nothing was deleted.");
-            return false;
-        }
-
-        if (await IsAlreadyReplacedAsync(dbContext))
-        {
-            logger.LogInformation("ReplaceDemoContent already applied. Nothing was deleted.");
-            return false;
+            logger.LogWarning("AddFictionalDemo needs a relational database. Nothing was changed.");
+            return;
         }
 
         if (!await HasLegacyDemoMarkerAsync(dbContext))
         {
-            logger.LogInformation("ReplaceDemoContent found no previous demo rows. Nothing was deleted.");
-            return false;
+            logger.LogInformation("AddFictionalDemo found no previous demo rows. Nothing was changed.");
+            return;
+        }
+
+        if (await IsCatalogAlreadyPresentAsync(dbContext))
+        {
+            logger.LogInformation("AddFictionalDemo already applied. Old rows were left in place.");
+            return;
         }
 
         var strangerCount = await CountStrangersAsync(dbContext, configuration);
         if (strangerCount > 0)
         {
             logger.LogWarning(
-                "ReplaceDemoContent aborted. {Count} accounts are outside the admin and demo set. Nothing was deleted.",
+                "AddFictionalDemo aborted. {Count} accounts are outside the admin and demo set. Nothing was changed.",
                 strangerCount);
-            return false;
+            return;
         }
 
         try
@@ -65,57 +60,127 @@ public static class DemoContentReplacer
             await using var transaction = await dbContext.Database.BeginTransactionAsync();
 
             await RenameDemoUsersAsync(userManager, dbContext, timeProvider, logger);
-
-            await dbContext.EinsatzParticipants.ExecuteDeleteAsync();
-            await dbContext.Einsaetze.ExecuteDeleteAsync();
-            await dbContext.UserLocationAssignments.ExecuteDeleteAsync();
-            await dbContext.Locations.ExecuteDeleteAsync();
-
-            await DemoUsersSeeder.SeedAsync(userManager, dbContext, configuration, timeProvider, logger);
-            await LocationsSeeder.SeedAsync(dbContext, configuration, logger, timeProvider);
-            await ShiftsSeeder.SeedAsync(dbContext, userManager, configuration, timeProvider, logger);
-            await UserLocationAssignmentSeeder.SeedAsync(dbContext, userManager, configuration, timeProvider, logger);
+            await LocationsSeeder.InsertMissingAsync(dbContext, timeProvider, logger);
+            await ShiftsSeeder.InsertCatalogIfMissingAsync(dbContext, userManager, timeProvider, logger);
+            await UserLocationAssignmentSeeder.InsertMissingLinksAsync(dbContext, userManager, timeProvider, logger, strict: true);
 
             var markerExists = await dbContext.Einsaetze.AnyAsync(s => s.Id == DemoCatalog.MarkerShiftId);
             var placeExists = await dbContext.Locations.AnyAsync(l => l.Name == DemoCatalog.Places[0].Name);
             if (!markerExists || !placeExists)
-                throw new InvalidOperationException("The new demo rows were not inserted. The replacement was rolled back.");
+                throw new InvalidOperationException("The new demo rows were not inserted. The transaction was rolled back.");
 
             await transaction.CommitAsync();
-            logger.LogInformation("ReplaceDemoContent finished. Demo accounts were renamed in place and the operational rows were replaced.");
-            return true;
+            logger.LogInformation("AddFictionalDemo finished. The new catalog is present and the previous rows are still there.");
         }
         catch (Exception ex)
         {
             dbContext.ChangeTracker.Clear();
-            logger.LogError(ex, "ReplaceDemoContent failed. The transaction was rolled back and the previous rows stay in place.");
-            return false;
+            logger.LogError(ex, "AddFictionalDemo failed. The transaction was rolled back and the previous rows stay in place.");
         }
     }
 
-    private static bool SeedFlagsAllowRefill(IConfiguration configuration)
+    public static async Task TryRemoveLegacyDemoAsync(
+        AppDbContext dbContext,
+        IConfiguration configuration,
+        ILogger logger)
     {
-        return IsEnabled(configuration, "Seeding:DemoUsers:Enabled")
-            && IsEnabled(configuration, "Seeding:Locations:Enabled")
-            && IsEnabled(configuration, "Seeding:Shifts:Enabled")
-            && IsEnabled(configuration, "Seeding:UserLocationAssignments:Enabled");
+        if (!IsEnabled(configuration, "Seeding:RemoveLegacyDemo:Enabled"))
+        {
+            logger.LogInformation("RemoveLegacyDemo is off. Previous demo rows stay in place.");
+            return;
+        }
+
+        if (IsEnabled(configuration, "Seeding:AddFictionalDemo:Enabled"))
+        {
+            logger.LogWarning("RemoveLegacyDemo stays off while AddFictionalDemo is on. Nothing was deleted.");
+            return;
+        }
+
+        if (!dbContext.Database.IsRelational())
+        {
+            logger.LogWarning("RemoveLegacyDemo needs a relational database. Nothing was deleted.");
+            return;
+        }
+
+        if (!await dbContext.Einsaetze.AnyAsync(s => s.Id == DemoCatalog.MarkerShiftId))
+        {
+            logger.LogWarning("RemoveLegacyDemo aborted because the new catalog is not present. Nothing was deleted.");
+            return;
+        }
+
+        var strangerCount = await CountStrangersAsync(dbContext, configuration);
+        if (strangerCount > 0)
+        {
+            logger.LogWarning(
+                "RemoveLegacyDemo aborted. {Count} accounts are outside the admin and demo set. Nothing was deleted.",
+                strangerCount);
+            return;
+        }
+
+        try
+        {
+            await using var transaction = await dbContext.Database.BeginTransactionAsync();
+
+            var legacyLocationIds = await dbContext.Locations
+                .Where(l => DemoCatalog.LegacyPlaceNames.Contains(l.Name))
+                .Select(l => l.Id)
+                .ToListAsync();
+
+            var legacyShiftIds = await dbContext.Einsaetze
+                .Where(s => DemoCatalog.LegacyShiftIds.Contains(s.Id) || legacyLocationIds.Contains(s.LocationId))
+                .Select(s => s.Id)
+                .ToListAsync();
+
+            var removedParticipants = await dbContext.EinsatzParticipants
+                .Where(p => legacyShiftIds.Contains(p.ShiftId))
+                .ExecuteDeleteAsync();
+            var removedShifts = await dbContext.Einsaetze
+                .Where(s => legacyShiftIds.Contains(s.Id))
+                .ExecuteDeleteAsync();
+            var removedAssignments = await dbContext.UserLocationAssignments
+                .Where(a => legacyLocationIds.Contains(a.LocationId))
+                .ExecuteDeleteAsync();
+            var removedLocations = await dbContext.Locations
+                .Where(l => legacyLocationIds.Contains(l.Id))
+                .ExecuteDeleteAsync();
+
+            await transaction.CommitAsync();
+            logger.LogInformation(
+                "RemoveLegacyDemo finished. Removed {Shifts} shifts, {Participants} participants, {Assignments} assignments and {Locations} locations.",
+                removedShifts,
+                removedParticipants,
+                removedAssignments,
+                removedLocations);
+        }
+        catch (Exception ex)
+        {
+            dbContext.ChangeTracker.Clear();
+            logger.LogError(ex, "RemoveLegacyDemo failed. The transaction was rolled back and the previous rows stay in place.");
+        }
     }
 
-    private static async Task<bool> IsAlreadyReplacedAsync(AppDbContext dbContext)
+    private static async Task<bool> IsCatalogAlreadyPresentAsync(AppDbContext dbContext)
     {
         var markerExists = await dbContext.Einsaetze.AnyAsync(s => s.Id == DemoCatalog.MarkerShiftId);
         if (!markerExists)
             return false;
 
-        return !await HasLegacyDemoMarkerAsync(dbContext);
+        var placeNames = DemoCatalog.Places.Select(p => p.Name).ToArray();
+        var placeCount = await dbContext.Locations.CountAsync(l => placeNames.Contains(l.Name));
+        if (placeCount != DemoCatalog.Places.Length)
+            return false;
+
+        var legacyEmails = DemoCatalog.People.Select(p => p.LegacyEmail).ToArray();
+        var legacyUserExists = await dbContext.Users.AnyAsync(u => u.Email != null && legacyEmails.Contains(u.Email));
+        return !legacyUserExists;
     }
 
     private static async Task<bool> HasLegacyDemoMarkerAsync(AppDbContext dbContext)
     {
-        if (await dbContext.Einsaetze.AnyAsync(s => s.Id == DemoCatalog.LegacyShiftId))
+        if (await dbContext.Einsaetze.AnyAsync(s => DemoCatalog.LegacyShiftIds.Contains(s.Id)))
             return true;
 
-        if (await dbContext.Locations.AnyAsync(l => l.Name == DemoCatalog.LegacyLocationName))
+        if (await dbContext.Locations.AnyAsync(l => DemoCatalog.LegacyPlaceNames.Contains(l.Name)))
             return true;
 
         var legacyEmails = DemoCatalog.People.Select(p => p.LegacyEmail).ToArray();
